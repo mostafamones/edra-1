@@ -1,18 +1,16 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation"
 
 export default function Page() {
+  const router = useRouter()
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
-        </div>
-        <div className="font-mono text-xs text-muted-foreground">
-          (Press <kbd>d</kbd> to toggle dark mode)
-        </div>
+    <div className="flex h-svh w-svw items-center justify-center">
+      <div className="flex flex-col text-sm leading-loose items-center justify-center">
+        <h1 className="font-semibold text-lg">Signed Up Successfully</h1>
+        <p className="text-muted-foreground">You can now create your first academy.</p>
+        <Button className="mt-4" onClick={() => router.push("/create")}>Create Academy</Button>
       </div>
     </div>
   )
