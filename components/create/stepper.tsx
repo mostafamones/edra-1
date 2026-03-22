@@ -1,15 +1,35 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { IconChevronLeft, IconChevronRight, IconCheck, IconSchool } from "@tabler/icons-react"
+
 import { Button } from "@/components/ui/button"
+import { ACADEMY_ICONS } from "@/lib/constants"
+import { cn } from "@/lib/utils"
+
 import { StepOneBasics } from "./step-one-basics"
 import { StepTwoStructure } from "./step-two-structure"
-import { ACADEMY_ICONS } from "@/lib/constants"
 import { StepPlaceholder } from "./step-placeholder"
-import { cn } from "@/lib/utils"
-import { motion, AnimatePresence } from "framer-motion"
+
+const DEFAULT_STRUCTURE_LEVELS: Array<{
+  id: string
+  name: string
+  color?: string
+  groups: Array<{ id: string; name: string }>
+}> = [
+  { id: "level-ref-1", name: "Level 1", color: "sky", groups: [] },
+  {
+    id: "level-ref-2",
+    name: "Level 2",
+    color: "violet",
+    groups: [
+      { id: "group-ref-a", name: "Section A" },
+      { id: "group-ref-b", name: "Section B" },
+    ],
+  },
+]
 
 const STEPS = [
   { id: 1, title: "Basics" },
@@ -38,7 +58,7 @@ export function CreateAcademyStepper() {
     subdomain: "",
     icon: "school",
     subject: "",
-    levels: [] as Array<{ id: string; name: string; groups: Array<{ id: string; name: string }> }>,
+    levels: DEFAULT_STRUCTURE_LEVELS,
   })
 
   // Handlers for navigating the wizard
@@ -167,7 +187,7 @@ export function CreateAcademyStepper() {
           {/* Dynamic Step Content */}
           <motion.div
             layout
-            className="rounded-xl border bg-card text-card-foreground shadow p-2 py-6 flex flex-col relative overflow-hidden h-[500px]"
+            className="rounded-xl border bg-card text-card-foreground shadow p-2 py-6 flex flex-col relative overflow-y-auto min-h-[500px] max-h-[650px] "
           >
             <div className="relative h-full">
               <AnimatePresence initial={false} custom={direction}>
