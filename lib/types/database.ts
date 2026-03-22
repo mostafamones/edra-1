@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.4"
   }
   public: {
     Tables: {
@@ -23,7 +23,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          id: string
+          id?: string
           name: string
           owner_id: string
         }
@@ -33,11 +33,68 @@ export type Database = {
           name?: string
           owner_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "academies_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      academy_memberships: {
+        Row: {
+          academy_id: string
+          id: string
+          instructor_id: string
+          is_active: boolean | null
+          joined_at: string | null
+          role: string
+        }
+        Insert: {
+          academy_id: string
+          id?: string
+          instructor_id: string
+          is_active?: boolean | null
+          joined_at?: string | null
+          role: string
+        }
+        Update: {
+          academy_id?: string
+          id?: string
+          instructor_id?: string
+          is_active?: boolean | null
+          joined_at?: string | null
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_memberships_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academy_memberships_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academy_memberships_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "v_instructor_context"
+            referencedColumns: ["instructor_id"]
+          },
+        ]
       }
       assignment_parts: {
         Row: {
-          academy_id: string | null
+          academy_id: string
           assignment_id: number
           id: number
           max_mark: number
@@ -45,17 +102,17 @@ export type Database = {
           title: string | null
         }
         Insert: {
-          academy_id?: string | null
+          academy_id: string
           assignment_id: number
-          id?: number
+          id?: never
           max_mark: number
           order_index?: number | null
           title?: string | null
         }
         Update: {
-          academy_id?: string | null
+          academy_id?: string
           assignment_id?: number
-          id?: number
+          id?: never
           max_mark?: number
           order_index?: number | null
           title?: string | null
@@ -79,7 +136,14 @@ export type Database = {
             foreignKeyName: "assignment_parts_assignment_id_fkey"
             columns: ["assignment_id"]
             isOneToOne: false
-            referencedRelation: "student_assignment_totals"
+            referencedRelation: "v_assignment_grades"
+            referencedColumns: ["assignment_id"]
+          },
+          {
+            foreignKeyName: "assignment_parts_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "v_course_grade_book"
             referencedColumns: ["assignment_id"]
           },
         ]
@@ -87,11 +151,12 @@ export type Database = {
       assignments: {
         Row: {
           academy_id: string
-          branch_id: number | null
+          course_id: number | null
           created_at: string | null
           created_by: string | null
           description: string | null
           due_date: string | null
+          group_id: number | null
           id: number
           level_id: number | null
           title: string
@@ -100,12 +165,13 @@ export type Database = {
         }
         Insert: {
           academy_id: string
-          branch_id?: number | null
+          course_id?: number | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           due_date?: string | null
-          id?: number
+          group_id?: number | null
+          id?: never
           level_id?: number | null
           title: string
           updated_at?: string | null
@@ -113,12 +179,13 @@ export type Database = {
         }
         Update: {
           academy_id?: string
-          branch_id?: number | null
+          course_id?: number | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           due_date?: string | null
-          id?: number
+          group_id?: number | null
+          id?: never
           level_id?: number | null
           title?: string
           updated_at?: string | null
@@ -133,17 +200,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "assignments_branch_id_fkey"
-            columns: ["branch_id"]
+            foreignKeyName: "assignments_course_id_fkey"
+            columns: ["course_id"]
             isOneToOne: false
-            referencedRelation: "branches"
+            referencedRelation: "courses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "v_course_grade_book"
+            referencedColumns: ["course_id"]
+          },
+          {
+            foreignKeyName: "assignments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "v_student_portal_overview"
+            referencedColumns: ["course_id"]
           },
           {
             foreignKeyName: "assignments_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_instructor_context"
+            referencedColumns: ["instructor_id"]
+          },
+          {
+            foreignKeyName: "assignments_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
             referencedColumns: ["id"]
           },
           {
@@ -182,7 +277,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "attendance_academy_fk"
+            foreignKeyName: "attendance_academy_id_fkey"
             columns: ["academy_id"]
             isOneToOne: false
             referencedRelation: "academies"
@@ -196,107 +291,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "attendance_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "v_session_attendance_sheet"
+            referencedColumns: ["session_id"]
+          },
+          {
             foreignKeyName: "attendance_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      audit_logs: {
-        Row: {
-          academy_id: string
-          action: string
-          actor_id: string | null
-          actor_role: string | null
-          created_at: string | null
-          id: number
-          new_data: Json | null
-          old_data: Json | null
-          record_id: string | null
-          table_name: string
-        }
-        Insert: {
-          academy_id: string
-          action: string
-          actor_id?: string | null
-          actor_role?: string | null
-          created_at?: string | null
-          id?: number
-          new_data?: Json | null
-          old_data?: Json | null
-          record_id?: string | null
-          table_name: string
-        }
-        Update: {
-          academy_id?: string
-          action?: string
-          actor_id?: string | null
-          actor_role?: string | null
-          created_at?: string | null
-          id?: number
-          new_data?: Json | null
-          old_data?: Json | null
-          record_id?: string | null
-          table_name?: string
-        }
-        Relationships: []
-      }
-      branches: {
-        Row: {
-          academy_id: string
-          created_at: string | null
-          id: number
-          is_active: boolean | null
-          level_id: number
-          name: string
-          updated_at: string | null
-        }
-        Insert: {
-          academy_id: string
-          created_at?: string | null
-          id?: number
-          is_active?: boolean | null
-          level_id: number
-          name: string
-          updated_at?: string | null
-        }
-        Update: {
-          academy_id?: string
-          created_at?: string | null
-          id?: number
-          is_active?: boolean | null
-          level_id?: number
-          name?: string
-          updated_at?: string | null
-        }
-        Relationships: [
           {
-            foreignKeyName: "branches_academy_id_fkey"
-            columns: ["academy_id"]
+            foreignKeyName: "attendance_student_id_fkey"
+            columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "academies"
-            referencedColumns: ["id"]
+            referencedRelation: "v_assignment_grades"
+            referencedColumns: ["student_id"]
           },
           {
-            foreignKeyName: "branches_level_id_fkey"
-            columns: ["level_id"]
+            foreignKeyName: "attendance_student_id_fkey"
+            columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "levels"
-            referencedColumns: ["id"]
+            referencedRelation: "v_course_grade_book"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "attendance_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_course_students"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "attendance_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_session_attendance_sheet"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "attendance_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_student_attendance_summary"
+            referencedColumns: ["student_id"]
           },
         ]
       }
       class_schedules: {
         Row: {
           academy_id: string
-          branch_id: number | null
+          auto_assign: boolean
+          course_id: number | null
           created_at: string | null
           created_by: string | null
+          group_id: number | null
           id: number
           is_active: boolean
-          is_mandatory: boolean
           level_id: number | null
           name: string
           one_off_date: string | null
@@ -307,12 +361,13 @@ export type Database = {
         }
         Insert: {
           academy_id: string
-          branch_id?: number | null
+          auto_assign?: boolean
+          course_id?: number | null
           created_at?: string | null
           created_by?: string | null
-          id?: number
+          group_id?: number | null
+          id?: never
           is_active?: boolean
-          is_mandatory?: boolean
           level_id?: number | null
           name: string
           one_off_date?: string | null
@@ -323,12 +378,13 @@ export type Database = {
         }
         Update: {
           academy_id?: string
-          branch_id?: number | null
+          auto_assign?: boolean
+          course_id?: number | null
           created_at?: string | null
           created_by?: string | null
-          id?: number
+          group_id?: number | null
+          id?: never
           is_active?: boolean
-          is_mandatory?: boolean
           level_id?: number | null
           name?: string
           one_off_date?: string | null
@@ -346,17 +402,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "class_schedules_branch_id_fkey"
-            columns: ["branch_id"]
+            foreignKeyName: "class_schedules_course_id_fkey"
+            columns: ["course_id"]
             isOneToOne: false
-            referencedRelation: "branches"
+            referencedRelation: "courses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_schedules_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "v_course_grade_book"
+            referencedColumns: ["course_id"]
+          },
+          {
+            foreignKeyName: "class_schedules_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "v_student_portal_overview"
+            referencedColumns: ["course_id"]
           },
           {
             foreignKeyName: "class_schedules_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_schedules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_instructor_context"
+            referencedColumns: ["instructor_id"]
+          },
+          {
+            foreignKeyName: "class_schedules_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
             referencedColumns: ["id"]
           },
           {
@@ -375,34 +459,258 @@ export type Database = {
           },
         ]
       }
+      courses: {
+        Row: {
+          academy_id: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          group_id: number | null
+          id: number
+          level_id: number | null
+          status: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          academy_id: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          group_id?: number | null
+          id?: never
+          level_id?: number | null
+          status?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          academy_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          group_id?: number | null
+          id?: never
+          level_id?: number | null
+          status?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courses_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_instructor_context"
+            referencedColumns: ["instructor_id"]
+          },
+          {
+            foreignKeyName: "courses_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courses_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enrollments: {
+        Row: {
+          academy_id: string
+          completed_at: string | null
+          course_id: number
+          enrolled_at: string | null
+          id: number
+          status: string
+          student_id: number
+        }
+        Insert: {
+          academy_id: string
+          completed_at?: string | null
+          course_id: number
+          enrolled_at?: string | null
+          id?: never
+          status?: string
+          student_id: number
+        }
+        Update: {
+          academy_id?: string
+          completed_at?: string | null
+          course_id?: number
+          enrolled_at?: string | null
+          id?: never
+          status?: string
+          student_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrollments_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "v_course_grade_book"
+            referencedColumns: ["course_id"]
+          },
+          {
+            foreignKeyName: "enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "v_student_portal_overview"
+            referencedColumns: ["course_id"]
+          },
+          {
+            foreignKeyName: "enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_assignment_grades"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_course_grade_book"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_course_students"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_session_attendance_sheet"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_student_attendance_summary"
+            referencedColumns: ["student_id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          academy_id: string
+          created_at: string | null
+          id: number
+          is_active: boolean | null
+          level_id: number
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          academy_id: string
+          created_at?: string | null
+          id?: never
+          is_active?: boolean | null
+          level_id: number
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          academy_id?: string
+          created_at?: string | null
+          id?: never
+          is_active?: boolean | null
+          level_id?: number
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groups_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groups_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instructor_invites: {
         Row: {
           academy_id: string
-          created_at: string
-          email: string | null
-          expires_at: string
+          created_at: string | null
+          email: string
+          expires_at: string | null
           id: string
           invited_by: string
+          role: string
           status: string
           token: string
         }
         Insert: {
           academy_id: string
-          created_at?: string
-          email?: string | null
-          expires_at?: string
+          created_at?: string | null
+          email: string
+          expires_at?: string | null
           id?: string
           invited_by: string
+          role?: string
           status?: string
           token?: string
         }
         Update: {
           academy_id?: string
-          created_at?: string
-          email?: string | null
-          expires_at?: string
+          created_at?: string | null
+          email?: string
+          expires_at?: string | null
           id?: string
           invited_by?: string
+          role?: string
           status?: string
           token?: string
         }
@@ -421,48 +729,52 @@ export type Database = {
             referencedRelation: "instructors"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "instructor_invites_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "v_instructor_context"
+            referencedColumns: ["instructor_id"]
+          },
         ]
       }
       instructors: {
         Row: {
-          academy_id: string
           avatar_url: string | null
           created_at: string | null
-          full_name: string | null
+          full_name: string
           id: string
-          is_active: boolean | null
           original_avatar_path: string | null
           phone: string | null
-          role: string
+          updated_at: string | null
+          user_id: string | null
         }
         Insert: {
-          academy_id: string
           avatar_url?: string | null
           created_at?: string | null
-          full_name?: string | null
-          id: string
-          is_active?: boolean | null
+          full_name: string
+          id?: string
           original_avatar_path?: string | null
           phone?: string | null
-          role: string
+          updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
-          academy_id?: string
           avatar_url?: string | null
           created_at?: string | null
-          full_name?: string | null
+          full_name?: string
           id?: string
-          is_active?: boolean | null
           original_avatar_path?: string | null
           phone?: string | null
-          role?: string
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "instructors_academy_id_fkey"
-            columns: ["academy_id"]
+            foreignKeyName: "instructors_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "academies"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -481,7 +793,7 @@ export type Database = {
           academy_id: string
           color?: string | null
           created_at?: string | null
-          id?: number
+          id?: never
           is_active?: boolean | null
           name: string
           updated_at?: string | null
@@ -490,7 +802,7 @@ export type Database = {
           academy_id?: string
           color?: string | null
           created_at?: string | null
-          id?: number
+          id?: never
           is_active?: boolean | null
           name?: string
           updated_at?: string | null
@@ -505,11 +817,95 @@ export type Database = {
           },
         ]
       }
+      schedule_enrollments: {
+        Row: {
+          academy_id: string
+          enrolled_at: string | null
+          enrollment_type: string
+          id: number
+          schedule_id: number
+          student_id: number
+        }
+        Insert: {
+          academy_id: string
+          enrolled_at?: string | null
+          enrollment_type?: string
+          id?: never
+          schedule_id: number
+          student_id: number
+        }
+        Update: {
+          academy_id?: string
+          enrolled_at?: string | null
+          enrollment_type?: string
+          id?: never
+          schedule_id?: number
+          student_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_enrollments_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_enrollments_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "class_schedules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_assignment_grades"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "schedule_enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_course_grade_book"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "schedule_enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_course_students"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "schedule_enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_session_attendance_sheet"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "schedule_enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_student_attendance_summary"
+            referencedColumns: ["student_id"]
+          },
+        ]
+      }
       schedule_groups: {
         Row: {
           academy_id: string
-          branch_id: number | null
           created_at: string | null
+          group_id: number | null
           id: number
           level_id: number | null
           min_attendance: number
@@ -517,18 +913,18 @@ export type Database = {
         }
         Insert: {
           academy_id: string
-          branch_id?: number | null
           created_at?: string | null
-          id?: number
+          group_id?: number | null
+          id?: never
           level_id?: number | null
           min_attendance?: number
           name: string
         }
         Update: {
           academy_id?: string
-          branch_id?: number | null
           created_at?: string | null
-          id?: number
+          group_id?: number | null
+          id?: never
           level_id?: number | null
           min_attendance?: number
           name?: string
@@ -542,10 +938,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "schedule_groups_branch_id_fkey"
-            columns: ["branch_id"]
+            foreignKeyName: "schedule_groups_group_id_fkey"
+            columns: ["group_id"]
             isOneToOne: false
-            referencedRelation: "branches"
+            referencedRelation: "groups"
             referencedColumns: ["id"]
           },
           {
@@ -573,7 +969,7 @@ export type Database = {
           created_at?: string | null
           day_of_week?: number | null
           end_time?: string | null
-          id?: number
+          id?: never
           instance_date?: string | null
           schedule_id: number
           start_time: string
@@ -583,14 +979,14 @@ export type Database = {
           created_at?: string | null
           day_of_week?: number | null
           end_time?: string | null
-          id?: number
+          id?: never
           instance_date?: string | null
           schedule_id?: number
           start_time?: string
         }
         Relationships: [
           {
-            foreignKeyName: "schedule_time_slots_academy_fk"
+            foreignKeyName: "schedule_time_slots_academy_id_fkey"
             columns: ["academy_id"]
             isOneToOne: false
             referencedRelation: "academies"
@@ -601,13 +997,6 @@ export type Database = {
             columns: ["schedule_id"]
             isOneToOne: false
             referencedRelation: "class_schedules"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "schedule_time_slots_schedule_id_fkey"
-            columns: ["schedule_id"]
-            isOneToOne: false
-            referencedRelation: "schedule_full"
             referencedColumns: ["id"]
           },
         ]
@@ -630,7 +1019,7 @@ export type Database = {
           academy_id: string
           created_at?: string | null
           ended_at?: string | null
-          id?: number
+          id?: never
           is_cancelled?: boolean | null
           name?: string | null
           schedule_id: number
@@ -643,7 +1032,7 @@ export type Database = {
           academy_id?: string
           created_at?: string | null
           ended_at?: string | null
-          id?: number
+          id?: never
           is_cancelled?: boolean | null
           name?: string | null
           schedule_id?: number
@@ -665,13 +1054,6 @@ export type Database = {
             columns: ["schedule_id"]
             isOneToOne: false
             referencedRelation: "class_schedules"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sessions_schedule_id_fkey"
-            columns: ["schedule_id"]
-            isOneToOne: false
-            referencedRelation: "schedule_full"
             referencedColumns: ["id"]
           },
           {
@@ -704,7 +1086,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "student_field_values_academy_fk"
+            foreignKeyName: "student_field_values_academy_id_fkey"
             columns: ["academy_id"]
             isOneToOne: false
             referencedRelation: "academies"
@@ -724,6 +1106,41 @@ export type Database = {
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "student_field_values_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_assignment_grades"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_field_values_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_course_grade_book"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_field_values_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_course_students"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_field_values_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_session_attendance_sheet"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_field_values_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_student_attendance_summary"
+            referencedColumns: ["student_id"]
+          },
         ]
       }
       student_fields: {
@@ -736,29 +1153,32 @@ export type Database = {
           is_active: boolean | null
           is_required: boolean | null
           name: string
-          options: string[] | null
+          options: Json | null
+          order_index: number | null
         }
         Insert: {
           academy_id: string
           created_at?: string | null
           default_country_code?: string | null
           field_type: string
-          id?: number
+          id?: never
           is_active?: boolean | null
           is_required?: boolean | null
           name: string
-          options?: string[] | null
+          options?: Json | null
+          order_index?: number | null
         }
         Update: {
           academy_id?: string
           created_at?: string | null
           default_country_code?: string | null
           field_type?: string
-          id?: number
+          id?: never
           is_active?: boolean | null
           is_required?: boolean | null
           name?: string
-          options?: string[] | null
+          options?: Json | null
+          order_index?: number | null
         }
         Relationships: [
           {
@@ -797,7 +1217,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "student_part_marks_academy_fk"
+            foreignKeyName: "student_part_marks_academy_id_fkey"
             columns: ["academy_id"]
             isOneToOne: false
             referencedRelation: "academies"
@@ -817,97 +1237,182 @@ export type Database = {
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "student_part_marks_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_assignment_grades"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_part_marks_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_course_grade_book"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_part_marks_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_course_students"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_part_marks_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_session_attendance_sheet"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_part_marks_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_student_attendance_summary"
+            referencedColumns: ["student_id"]
+          },
         ]
       }
-      student_schedules: {
+      student_portal_invites: {
         Row: {
           academy_id: string
-          enrolled_at: string | null
-          enrollment_type: string
-          schedule_id: number
+          created_at: string | null
+          email: string
+          expires_at: string | null
+          id: string
+          invited_by: string
+          status: string
           student_id: number
+          token: string
         }
         Insert: {
           academy_id: string
-          enrolled_at?: string | null
-          enrollment_type?: string
-          schedule_id: number
+          created_at?: string | null
+          email: string
+          expires_at?: string | null
+          id?: string
+          invited_by: string
+          status?: string
           student_id: number
+          token?: string
         }
         Update: {
           academy_id?: string
-          enrolled_at?: string | null
-          enrollment_type?: string
-          schedule_id?: number
+          created_at?: string | null
+          email?: string
+          expires_at?: string | null
+          id?: string
+          invited_by?: string
+          status?: string
           student_id?: number
+          token?: string
         }
         Relationships: [
           {
-            foreignKeyName: "student_schedules_academy_fk"
+            foreignKeyName: "student_portal_invites_academy_id_fkey"
             columns: ["academy_id"]
             isOneToOne: false
             referencedRelation: "academies"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "student_schedules_schedule_id_fkey"
-            columns: ["schedule_id"]
+            foreignKeyName: "student_portal_invites_invited_by_fkey"
+            columns: ["invited_by"]
             isOneToOne: false
-            referencedRelation: "class_schedules"
+            referencedRelation: "instructors"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "student_schedules_schedule_id_fkey"
-            columns: ["schedule_id"]
+            foreignKeyName: "student_portal_invites_invited_by_fkey"
+            columns: ["invited_by"]
             isOneToOne: false
-            referencedRelation: "schedule_full"
-            referencedColumns: ["id"]
+            referencedRelation: "v_instructor_context"
+            referencedColumns: ["instructor_id"]
           },
           {
-            foreignKeyName: "student_schedules_student_id_fkey"
+            foreignKeyName: "student_portal_invites_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_portal_invites_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_assignment_grades"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_portal_invites_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_course_grade_book"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_portal_invites_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_course_students"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_portal_invites_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_session_attendance_sheet"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_portal_invites_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_student_attendance_summary"
+            referencedColumns: ["student_id"]
           },
         ]
       }
       students: {
         Row: {
           academy_id: string
-          branch_id: number | null
           created_at: string | null
           full_name: string
+          group_id: number | null
           id: number
           is_archived: boolean | null
           level_id: number
           org_id: string | null
           status: string
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           academy_id: string
-          branch_id?: number | null
           created_at?: string | null
           full_name: string
-          id?: number
+          group_id?: number | null
+          id?: never
           is_archived?: boolean | null
           level_id: number
           org_id?: string | null
-          status: string
+          status?: string
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           academy_id?: string
-          branch_id?: number | null
           created_at?: string | null
           full_name?: string
-          id?: number
+          group_id?: number | null
+          id?: never
           is_archived?: boolean | null
           level_id?: number
           org_id?: string | null
           status?: string
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -918,10 +1423,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "students_branch_id_fkey"
-            columns: ["branch_id"]
+            foreignKeyName: "students_group_id_fkey"
+            columns: ["group_id"]
             isOneToOne: false
-            referencedRelation: "branches"
+            referencedRelation: "groups"
             referencedColumns: ["id"]
           },
           {
@@ -931,30 +1436,214 @@ export type Database = {
             referencedRelation: "levels"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "students_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      users: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          last_seen_at: string | null
+          phone: string | null
+          role: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id?: string
+          last_seen_at?: string | null
+          phone?: string | null
+          role?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          last_seen_at?: string | null
+          phone?: string | null
+          role?: string
+        }
+        Relationships: []
       }
     }
     Views: {
-      schedule_full: {
+      v_assignment_grades: {
         Row: {
           academy_id: string | null
-          branch_id: number | null
-          branch_name: string | null
-          created_at: string | null
-          created_by: string | null
-          group_min_attendance: number | null
+          assignment_id: number | null
+          assignment_title: string | null
+          course_id: number | null
+          earned_marks: number | null
+          percentage: number | null
+          possible_marks: number | null
+          student_id: number | null
+          student_name: string | null
+          weight: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignments_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "v_course_grade_book"
+            referencedColumns: ["course_id"]
+          },
+          {
+            foreignKeyName: "assignments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "v_student_portal_overview"
+            referencedColumns: ["course_id"]
+          },
+        ]
+      }
+      v_course_grade_book: {
+        Row: {
+          academy_id: string | null
+          assignment_id: number | null
+          assignment_title: string | null
+          course_id: number | null
+          course_title: string | null
+          earned_marks: number | null
+          percentage: number | null
+          possible_marks: number | null
+          student_id: number | null
+          student_name: string | null
+          weight: number | null
+          weighted_score: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courses_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_course_students: {
+        Row: {
+          academy_id: string | null
+          course_id: number | null
+          course_title: string | null
+          enrolled_at: string | null
+          enrollment_id: number | null
+          enrollment_status: string | null
           group_name: string | null
-          id: number | null
-          is_mandatory: boolean | null
-          level_id: number | null
+          is_archived: boolean | null
+          level_color: string | null
           level_name: string | null
-          name: string | null
-          one_off_date: string | null
-          schedule_group_id: number | null
-          schedule_type: string | null
-          show_on_form: boolean | null
-          student_count: number | null
-          time_slots: Json | null
+          org_id: string | null
+          student_id: number | null
+          student_name: string | null
+          student_status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courses_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "v_course_grade_book"
+            referencedColumns: ["course_id"]
+          },
+          {
+            foreignKeyName: "enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "v_student_portal_overview"
+            referencedColumns: ["course_id"]
+          },
+        ]
+      }
+      v_instructor_context: {
+        Row: {
+          academy_id: string | null
+          academy_name: string | null
+          avatar_url: string | null
+          full_name: string | null
+          instructor_id: string | null
+          is_active: boolean | null
+          joined_at: string | null
+          phone: string | null
+          role: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_memberships_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instructors_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_session_attendance_sheet: {
+        Row: {
+          academy_id: string | null
+          attendance_note: string | null
+          attendance_status: string | null
+          checkin_time: string | null
+          course_id: number | null
+          group_name: string | null
+          level_name: string | null
+          schedule_id: number | null
+          schedule_name: string | null
+          session_date: string | null
+          session_id: number | null
+          session_status: string | null
+          student_id: number | null
+          student_name: string | null
+          student_status: string | null
         }
         Relationships: [
           {
@@ -965,96 +1654,98 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "class_schedules_branch_id_fkey"
-            columns: ["branch_id"]
+            foreignKeyName: "class_schedules_course_id_fkey"
+            columns: ["course_id"]
             isOneToOne: false
-            referencedRelation: "branches"
+            referencedRelation: "courses"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "class_schedules_created_by_fkey"
-            columns: ["created_by"]
+            foreignKeyName: "class_schedules_course_id_fkey"
+            columns: ["course_id"]
             isOneToOne: false
-            referencedRelation: "instructors"
-            referencedColumns: ["id"]
+            referencedRelation: "v_course_grade_book"
+            referencedColumns: ["course_id"]
           },
           {
-            foreignKeyName: "class_schedules_level_id_fkey"
-            columns: ["level_id"]
+            foreignKeyName: "class_schedules_course_id_fkey"
+            columns: ["course_id"]
             isOneToOne: false
-            referencedRelation: "levels"
-            referencedColumns: ["id"]
+            referencedRelation: "v_student_portal_overview"
+            referencedColumns: ["course_id"]
           },
           {
-            foreignKeyName: "class_schedules_schedule_group_id_fkey"
-            columns: ["schedule_group_id"]
-            isOneToOne: false
-            referencedRelation: "schedule_groups"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      schedule_student_counts: {
-        Row: {
-          schedule_id: number | null
-          student_count: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_schedules_schedule_id_fkey"
+            foreignKeyName: "sessions_schedule_id_fkey"
             columns: ["schedule_id"]
             isOneToOne: false
             referencedRelation: "class_schedules"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "student_schedules_schedule_id_fkey"
-            columns: ["schedule_id"]
-            isOneToOne: false
-            referencedRelation: "schedule_full"
-            referencedColumns: ["id"]
-          },
         ]
       }
-      student_assignment_totals: {
-        Row: {
-          adjusted_max_mark: number | null
-          assignment_id: number | null
-          percentage: number | null
-          student_id: number | null
-          total_mark: number | null
-          total_max_mark: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_part_marks_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      student_attendance_summary: {
+      v_student_attendance_summary: {
         Row: {
           absent_count: number | null
           academy_id: string | null
+          attendance_rate: number | null
+          course_id: number | null
           excused_count: number | null
           late_count: number | null
           present_count: number | null
           student_id: number | null
+          student_name: string | null
           total_sessions: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "attendance_student_id_fkey"
-            columns: ["student_id"]
+            foreignKeyName: "class_schedules_academy_id_fkey"
+            columns: ["academy_id"]
             isOneToOne: false
-            referencedRelation: "students"
+            referencedRelation: "academies"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "sessions_academy_id_fkey"
+            foreignKeyName: "class_schedules_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_schedules_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "v_course_grade_book"
+            referencedColumns: ["course_id"]
+          },
+          {
+            foreignKeyName: "class_schedules_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "v_student_portal_overview"
+            referencedColumns: ["course_id"]
+          },
+        ]
+      }
+      v_student_portal_overview: {
+        Row: {
+          academy_id: string | null
+          academy_name: string | null
+          attendance_rate: number | null
+          course_id: number | null
+          course_title: string | null
+          description: string | null
+          enrolled_at: string | null
+          enrollment_id: number | null
+          enrollment_status: string | null
+          group_name: string | null
+          level_color: string | null
+          level_name: string | null
+          next_session_date: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courses_academy_id_fkey"
             columns: ["academy_id"]
             isOneToOne: false
             referencedRelation: "academies"
@@ -1064,14 +1755,12 @@ export type Database = {
       }
     }
     Functions: {
-      current_user_academy: { Args: never; Returns: string }
-      current_user_role: { Args: never; Returns: string }
-      get_my_academy: { Args: never; Returns: Json }
-      is_admin_or_owner: { Args: never; Returns: boolean }
-      is_instructor_or_above: { Args: never; Returns: boolean }
-      is_owner: { Args: never; Returns: boolean }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
+      is_academy_member: { Args: { p_academy_id: string }; Returns: boolean }
+      is_academy_role: {
+        Args: { p_academy_id: string; p_roles: string[] }
+        Returns: boolean
+      }
+      is_own_student_row: { Args: { p_student_id: number }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

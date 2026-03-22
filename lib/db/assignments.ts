@@ -6,8 +6,30 @@ const supabase: any = getServiceSupabase();
 export async function getAssignments(academyId: string) {
   const { data, error } = await supabase
     .from('assignments')
-    .select('*')
+    .select(`
+      *,
+      course:courses(*),
+      level:levels(*),
+      group:groups(*),
+      created_by:instructors(full_name),
+      parts:assignment_parts(*)
+    `)
     .eq('academy_id', academyId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data as Assignment[];
+}
+
+export async function getCourseAssignments(courseId: number) {
+  const { data, error } = await supabase
+    .from('assignments')
+    .select(`
+      *,
+      level:levels(*),
+      parts:assignment_parts(*)
+    `)
+    .eq('course_id', courseId)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -19,7 +41,8 @@ export async function getAssignment(id: number) {
     .from('assignments')
     .select(`
       *,
-      parts:assignment_parts(*)
+      parts:assignment_parts(*),
+      course:courses(*)
     `)
     .eq('id', id)
     .single();
@@ -34,10 +57,6 @@ export async function getAssignment(id: number) {
 
 export async function createAssignment(assignment: AssignmentInsert, parts: AssignmentPartInsert[] = []) {
   // Use a transaction or sequential operations
-  // Since supabase-js doesn't expose raw transactions easily, we do it sequentially.
-  // If part creation fails, we might have an orphan assignment. 
-  // RLS or triggers might help, but for now standard logic.
-
   const { data: newAssignment, error: assignError } = await supabase
     .from('assignments')
     .insert(assignment)
@@ -53,9 +72,7 @@ export async function createAssignment(assignment: AssignmentInsert, parts: Assi
       .insert(partsWithId);
 
     if (partsError) {
-      // Cleanup? Or just throw.
       console.error('Failed to create assignment parts', partsError);
-      // We could try to delete the assignment here to rollback
       await supabase.from('assignments').delete().eq('id', newAssignment.id);
       throw partsError;
     }
@@ -141,9 +158,9 @@ export async function getStudentMarksForAssignment(assignmentId: number) {
   return data;
 }
 
-export async function getAssignmentStats(assignmentId: number) {
+export async function getAssignmentGrades(assignmentId: number) {
   const { data, error } = await supabase
-    .from('student_assignment_totals')
+    .from('v_assignment_grades')
     .select('*')
     .eq('assignment_id', assignmentId);
 

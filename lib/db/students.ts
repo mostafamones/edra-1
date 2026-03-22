@@ -1,5 +1,5 @@
 import { getServiceSupabase } from '../supabase';
-import { Student, StudentInsert, StudentUpdate, StudentWithLevelRating } from '../types';
+import { Student, StudentInsert, StudentUpdate, StudentWithLevel } from '../types';
 
 const supabase: any = getServiceSupabase();
 
@@ -9,15 +9,20 @@ export async function getStudents(academyId: string) {
     .select(`
       *,
       level:levels(*),
-      branch:branches(*),
-      student_schedules(schedule:class_schedules(*)),
-      student_field_values(*)
+      group:groups(*),
+      schedule_enrollments(
+        schedule:class_schedules(*)
+      ),
+      student_field_values(*),
+      enrollments(
+        course:courses(*)
+      )
     `)
     .eq('academy_id', academyId)
     .order('full_name');
 
   if (error) throw error;
-  return data as StudentWithLevelRating[];
+  return data as StudentWithLevel[];
 }
 
 export async function getStudent(id: number) {
@@ -26,14 +31,19 @@ export async function getStudent(id: number) {
     .select(`
       *,
       level:levels(*),
-      branch:branches(*),
-      student_schedules(schedule:class_schedules(*))
+      group:groups(*),
+      schedule_enrollments(
+        schedule:class_schedules(*)
+      ),
+      enrollments(
+        course:courses(*)
+      )
     `)
     .eq('id', id)
     .single();
 
   if (error) throw error;
-  return data as StudentWithLevelRating;
+  return data as StudentWithLevel;
 }
 
 export async function createStudent(student: StudentInsert) {
@@ -71,11 +81,12 @@ export async function deleteStudent(id: number) {
 export interface StudentWithFields extends StudentInsert {
   fieldValues?: Array<{ field_id: number; field_type: string; value: any }>;
   schedule_id?: number | null;
+  course_id?: number | null;
 }
 
 export async function createStudentsBulk(students: StudentWithFields[]) {
   // Extract student data (without extra properties) for batch insert
-  const studentsData = students.map(({ fieldValues, schedule_id, ...rest }) => ({
+  const studentsData = students.map(({ fieldValues, schedule_id, course_id, ...rest }) => ({
     ...rest,
     status: rest.status || 'active'
   }));
@@ -88,24 +99,45 @@ export async function createStudentsBulk(students: StudentWithFields[]) {
 
   if (insertError) throw insertError;
 
-  // Now save field values for each student
-  const fieldValuesPromises = insertedStudents.map((student: any, index: number) => {
-    const fieldValues = students[index].fieldValues;
+  // Now save field values and enrollments for each student
+  const promises = insertedStudents.map(async (student: any, index: number) => {
+    const { fieldValues, schedule_id, course_id } = students[index];
+    const studentId = student.id;
+
+    const operations = [];
+
     if (fieldValues && fieldValues.length > 0) {
-      return saveStudentFieldValues(student.academy_id, student.id, fieldValues);
+      operations.push(saveStudentFieldValues(student.academy_id, studentId, fieldValues));
     }
-    return Promise.resolve();
+
+    if (schedule_id) {
+      operations.push(
+        supabase.from('schedule_enrollments').insert({
+          academy_id: student.academy_id,
+          student_id: studentId,
+          schedule_id,
+          enrollment_type: 'manual',
+        })
+      );
+    }
+
+    if (course_id) {
+      operations.push(
+        supabase.from('enrollments').insert({
+          academy_id: student.academy_id,
+          student_id: studentId,
+          course_id,
+          status: 'active',
+        })
+      );
+    }
+
+    return Promise.all(operations);
   });
 
-  await Promise.all(fieldValuesPromises);
+  await Promise.all(promises);
 
-  // Attach schedule_id back to the students for subsequent operations
-  const finalStudents = insertedStudents.map((student: any, index: number) => ({
-    ...student,
-    schedule_id: students[index].schedule_id
-  }));
-
-  return finalStudents;
+  return insertedStudents;
 }
 
 // Re-export saveStudentFieldValues for use in bulk import

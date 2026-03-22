@@ -32,15 +32,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [progress, setProgress] = useState(13)
-  const [showProgress, setShowProgress] = useState(false)
+  const [showFancyLoader, setShowFancyLoader] = useState(false)
   const initialized = useRef(false)
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setShowProgress(true)
-    }, 2000)
+      setShowFancyLoader(true)
+    }, 500)
     return () => clearTimeout(timer)
-  }, [])
+  }, [loading])
 
   useEffect(() => {
     if (!loading) {
@@ -135,22 +135,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             transition={{ duration: 0.4 }}
             className="flex flex-col h-screen w-screen items-center justify-center gap-4 bg-background fixed inset-0 z-50"
           >
-            <div className="flex flex-col items-center gap-2 self-center font-medium transition-all duration-700 ease-in-out"
-              style={{ transform: showProgress ? 'translateY(-20px)' : 'translateY(0)' }}>
-              <div className="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-md animate-pulse">
-                <IconSchool className="size-5" />
-              </div>
-              <h1 className="text-2xl font-semibold animate-pulse">Edra Academy</h1>
-            </div>
+            {showFancyLoader ? (
+              <>
+                <div className="flex flex-col items-center gap-2 self-center font-medium transition-all duration-700 ease-in-out">
+                  <div className="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-md animate-pulse">
+                    <IconSchool className="size-5" />
+                  </div>
+                  <h1 className="text-2xl font-semibold animate-pulse">Edra Academy</h1>
+                </div>
 
-            <div
-              className={cn(
-                "transition-all duration-1000 ease-out",
-                showProgress ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
-              )}
-            >
-              <Progress value={progress} className="w-[400px] h-0.5 rounded-full bg-muted" />
-            </div>
+                <div className="transition-all duration-1000 ease-out opacity-100 translate-y-0">
+                  <Progress value={progress} className="w-[400px] h-0.5 rounded-full bg-muted" />
+                </div>
+              </>
+            ) : null}
           </motion.div>
         ) : (
           <motion.div

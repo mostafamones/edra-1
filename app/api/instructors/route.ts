@@ -1,5 +1,6 @@
-import { getInstructors, updateInstructor, deleteInstructor } from "@/lib";
-import { getServiceSupabase } from "@/lib/supabase";
+import { getInstructors, updateInstructor, deleteInstructor } from "@/lib/db/instructors";
+import { getAcademyMemberships, createAcademyMembership } from "@/lib/db/academy-memberships";
+import { getServiceSupabase } from "@/utils/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -13,33 +14,81 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const instructors = await getInstructors(academyId);
+    const memberships = await getAcademyMemberships(academyId);
 
-    // Enrich with user email from auth.users using the service-role client
+    // Enrich instructor data with user emails from auth.users
     const supabase = getServiceSupabase();
     const enriched = await Promise.all(
-      instructors.map(async (inst) => {
+      memberships.map(async (membership: any) => {
         try {
-          const { data } = await (supabase as any).auth.admin.getUserById(inst.id);
+          const { data } = await (supabase as any).auth.admin.getUserById(membership.instructor_id);
           return {
-            ...inst,
-            email: data?.user?.email || null,
+            ...membership,
+            instructor: {
+              ...membership.instructor,
+              email: data?.user?.email || null,
+            },
           };
         } catch {
-          return { ...inst, email: null };
+          return {
+            ...membership,
+            instructor: {
+              ...membership.instructor,
+              email: null,
+            },
+          };
         }
       })
     );
 
-    // Sort: owner first, then admins, then instructors
+    // Sort by role order: owner (0), admin (1), instructor (2)
     const roleOrder: Record<string, number> = { owner: 0, admin: 1, instructor: 2 };
     enriched.sort((a, b) => (roleOrder[a.role] ?? 3) - (roleOrder[b.role] ?? 3));
 
-    return NextResponse.json(enriched);
+    // Extract just instructor data with email for backward compatibility
+    const result = enriched.map((item: any) => ({
+      ...item.instructor,
+      academy_id: item.academy_id,
+      role: item.role,
+      is_active: item.is_active,
+      joined_at: item.joined_at,
+    }));
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Error fetching instructors:", error);
     return NextResponse.json(
       { error: "Failed to fetch instructors" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { academy_id, instructor_id, role = 'instructor' } = body;
+
+    if (!academy_id || !instructor_id) {
+      return NextResponse.json(
+        { error: "Academy ID and Instructor ID are required" },
+        { status: 400 }
+      );
+    }
+
+    const membership = await createAcademyMembership({
+      academy_id,
+      instructor_id,
+      role,
+      is_active: true,
+      joined_at: new Date().toISOString(),
+    });
+
+    return NextResponse.json(membership, { status: 201 });
+  } catch (error) {
+    console.error("Error creating instructor membership:", error);
+    return NextResponse.json(
+      { error: "Failed to add instructor to academy" },
       { status: 500 }
     );
   }

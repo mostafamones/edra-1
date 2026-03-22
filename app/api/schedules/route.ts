@@ -1,18 +1,17 @@
-import { getSchedules, createSchedule, replaceTimeSlots } from "@/lib";
+import { getSchedules, createSchedule, updateSchedule, deleteSchedule, getTimeSlots, replaceTimeSlots, enrollStudentInSchedule, unenrollStudentFromSchedule, getScheduleStudents } from "@/lib/db/schedules";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const academyId = searchParams.get("academyId");
-
-  if (!academyId) {
-    return NextResponse.json(
-      { error: "Academy ID is required" },
-      { status: 400 }
-    );
-  }
-
   try {
+    const academyId = request.nextUrl.searchParams.get("academyId");
+
+    if (!academyId) {
+      return NextResponse.json(
+        { error: "Academy ID is required" },
+        { status: 400 }
+      );
+    }
+
     const schedules = await getSchedules(academyId);
     return NextResponse.json(schedules);
   } catch (error) {
@@ -29,19 +28,42 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { time_slots, ...scheduleData } = body;
 
-    // Create the schedule
-    const schedule = await createSchedule(scheduleData);
-
-    // Create time slots if provided
-    if (time_slots && time_slots.length > 0) {
-      await replaceTimeSlots(schedule.id, time_slots);
+    if (!scheduleData?.name || !scheduleData?.course_id || !scheduleData?.level_id) {
+      return NextResponse.json(
+        { error: "Name, course ID and level ID are required" },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json(schedule);
-  } catch (error: any) {
+    const schedule = await createSchedule(scheduleData);
+    return NextResponse.json(schedule, { status: 201 });
+  } catch (error) {
     console.error("Error creating schedule:", error);
     return NextResponse.json(
-      { error: "Failed to create schedule", details: error?.message || String(error) },
+      { error: (error as any)?.message || "Failed to create schedule" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = request.nextUrl;
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Schedule ID is required" },
+        { status: 400 }
+      );
+    }
+
+    await deleteSchedule(parseInt(id, 10));
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting schedule:", error);
+    return NextResponse.json(
+      { error: "Failed to delete schedule" },
       { status: 500 }
     );
   }

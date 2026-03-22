@@ -22,7 +22,8 @@ export async function getSession(id: number) {
       schedule:class_schedules(
         *,
         level:levels(*),
-        branch:branches(*)
+        group:groups(*),
+        course:courses(*)
       )
     `)
     .eq('id', id)
@@ -72,7 +73,8 @@ export async function getSessionsByDateRange(academyId: string, startDate: strin
       schedule:class_schedules(
         *,
         level:levels(*),
-        branch:branches(*)
+        group:groups(*),
+        course:courses(*)
       )
     `)
     .eq('academy_id', academyId)

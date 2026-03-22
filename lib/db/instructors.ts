@@ -1,28 +1,57 @@
-
 import { getServiceSupabase } from '../supabase';
-import { Instructor, InstructorInsert, InstructorUpdate, InstructorRole, InstructorRoleType } from '../types';
+import { Instructor, InstructorInsert, InstructorUpdate, InstructorWithContext } from '../types';
 
 const supabase: any = getServiceSupabase();
 
 export async function getInstructors(academyId: string) {
   const { data, error } = await supabase
     .from('instructors')
-    .select('*')
-    .eq('academy_id', academyId);
+    .select(`
+      *,
+      user:users(email, full_name, avatar_url),
+      academy_memberships(
+        *,
+        academy:academies(name)
+      )
+    `)
+    .eq('academy_memberships.academy_id', academyId)
+    .eq('academy_memberships.is_active', true)
+    .order('academy_memberships.joined_at', { ascending: false });
 
   if (error) throw error;
-  return data as Instructor[];
+  return data as (Instructor & { user?: any; academy_memberships?: any[] })[];
 }
 
 export async function getInstructor(id: string) {
   const { data, error } = await supabase
     .from('instructors')
-    .select('*')
+    .select(`
+      *,
+      user:users(email, full_name, avatar_url),
+      academy_memberships(
+        *,
+        academy:academies(name)
+      )
+    `)
     .eq('id', id)
     .single();
 
   if (error) throw error;
-  return data as Instructor;
+  return data as InstructorWithContext;
+}
+
+export async function getInstructorByUserId(userId: string) {
+  const { data, error } = await supabase
+    .from('instructors')
+    .select(`
+      *,
+      user:users(email, full_name, avatar_url)
+    `)
+    .eq('user_id', userId)
+    .single();
+
+  if (error) throw error;
+  return data as (Instructor & { user?: any });
 }
 
 export async function createInstructor(instructor: InstructorInsert) {
@@ -57,14 +86,19 @@ export async function deleteInstructor(id: string) {
   if (error) throw error;
 }
 
-export async function getActiveInstructor(id: string) {
+export async function linkInstructorToAcademy(instructorId: string, academyId: string, role: string = 'instructor') {
   const { data, error } = await supabase
-    .from('instructors')
-    .select('*')
-    .eq('id', id)
-    .eq('is_active', true)
+    .from('academy_memberships')
+    .insert({
+      academy_id: academyId,
+      instructor_id: instructorId,
+      role,
+      is_active: true,
+      joined_at: new Date().toISOString(),
+    })
+    .select()
     .single();
 
-  if (error) return null;
-  return data as Instructor;
+  if (error) throw error;
+  return data;
 }

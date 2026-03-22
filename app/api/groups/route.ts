@@ -1,9 +1,10 @@
-import { getStudents, createStudent, updateStudent, deleteStudent } from "@/lib/db/students";
+import { getGroups, getGroupsByLevel, createGroup, updateGroup, deleteGroup } from "@/lib/db/groups";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
     const academyId = request.nextUrl.searchParams.get("academyId");
+    const levelId = request.nextUrl.searchParams.get("levelId");
 
     if (!academyId) {
       return NextResponse.json(
@@ -12,12 +13,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const students = await getStudents(academyId);
-    return NextResponse.json(students);
+    if (levelId) {
+      const groups = await getGroupsByLevel(parseInt(levelId, 10));
+      return NextResponse.json(groups);
+    }
+
+    const groups = await getGroups(academyId);
+    return NextResponse.json(groups);
   } catch (error) {
-    console.error("Error fetching students:", error);
+    console.error("Error fetching groups:", error);
     return NextResponse.json(
-      { error: "Failed to fetch students" },
+      { error: "Failed to fetch groups" },
       { status: 500 }
     );
   }
@@ -26,20 +32,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { fieldValues, schedule_id, course_id, ...studentData } = body;
-
-    // Default status to 'active' if not provided
-    const studentWithDefaults = {
-      ...studentData,
-      status: studentData.status || 'active',
-    };
-
-    const student = await createStudent(studentWithDefaults);
-    return NextResponse.json(student, { status: 201 });
+    const group = await createGroup(body);
+    return NextResponse.json(group, { status: 201 });
   } catch (error) {
-    console.error("Error creating student:", error);
+    console.error("Error creating group:", error);
     return NextResponse.json(
-      { error: (error as any)?.message || "Failed to create student" },
+      { error: "Failed to create group" },
       { status: 500 }
     );
   }
@@ -52,17 +50,17 @@ export async function PATCH(request: NextRequest) {
 
     if (!id) {
       return NextResponse.json(
-        { error: "Student ID is required" },
+        { error: "Group ID is required" },
         { status: 400 }
       );
     }
 
-    const student = await updateStudent(id, updates);
-    return NextResponse.json(student);
+    const group = await updateGroup(id, updates);
+    return NextResponse.json(group);
   } catch (error) {
-    console.error("Error updating student:", error);
+    console.error("Error updating group:", error);
     return NextResponse.json(
-      { error: "Failed to update student" },
+      { error: "Failed to update group" },
       { status: 500 }
     );
   }
@@ -75,17 +73,17 @@ export async function DELETE(request: NextRequest) {
 
     if (!id) {
       return NextResponse.json(
-        { error: "Student ID is required" },
+        { error: "Group ID is required" },
         { status: 400 }
       );
     }
 
-    await deleteStudent(parseInt(id, 10));
+    await deleteGroup(parseInt(id, 10));
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting student:", error);
+    console.error("Error deleting group:", error);
     return NextResponse.json(
-      { error: "Failed to delete student" },
+      { error: "Failed to delete group" },
       { status: 500 }
     );
   }

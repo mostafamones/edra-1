@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "gen:types": "supabase gen types typescript --project-id ekacgfwwvvebvrqszfep --schema public > lib/types/database.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

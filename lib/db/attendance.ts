@@ -10,7 +10,11 @@ export async function getSessionAttendance(sessionId: number) {
       *,
       student:students(
         *,
-        student_schedules(*)
+        level:levels(*),
+        group:groups(*),
+        enrollments(
+          course:courses(*)
+        )
       )
     `)
     .eq('session_id', sessionId)
@@ -23,7 +27,7 @@ export async function getSessionAttendance(sessionId: number) {
 export async function recordAttendance(attendance: AttendanceInsert) {
   const { data, error } = await supabase
     .from('attendance')
-    .upsert(attendance) // Use upsert for create or update
+    .upsert(attendance)
     .select()
     .single();
 
@@ -49,7 +53,7 @@ export async function getStudentAttendanceHistory(studentId: number) {
       session:sessions(*)
     `)
     .eq('student_id', studentId)
-    .order('attended_at', { ascending: false });
+    .order('created_at', { ascending: false });
 
   if (error) throw error;
   return data;
@@ -57,7 +61,7 @@ export async function getStudentAttendanceHistory(studentId: number) {
 
 export async function getStudentAttendanceSummary(academyId: string) {
   const { data, error } = await supabase
-    .from('student_attendance_summary')
+    .from('v_student_attendance_summary')
     .select('*')
     .eq('academy_id', academyId);
 

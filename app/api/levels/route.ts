@@ -1,4 +1,4 @@
-import { getLevels, createLevel } from "@/lib";
+import { getLevels, createLevel } from "@/lib/db/levels";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {

@@ -1,12 +1,10 @@
+import { getAssignments, getCourseAssignments, getAssignment, createAssignment, updateAssignment, deleteAssignment } from "@/lib/db/assignments";
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase } from "@/lib/supabase";
-import { createAssignment } from "@/lib/db/assignments";
-
-const supabase: any = getServiceSupabase();
 
 export async function GET(request: NextRequest) {
   try {
     const academyId = request.nextUrl.searchParams.get("academyId");
+    const courseId = request.nextUrl.searchParams.get("courseId");
 
     if (!academyId) {
       return NextResponse.json(
@@ -15,32 +13,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabase
-      .from("assignments")
-      .select(`
-        *,
-        level:levels(id, name),
-        branch:branches(id, name),
-        parts:assignment_parts(id, title, max_mark, order_index)
-      `)
-      .eq("academy_id", academyId)
-      .order("created_at", { ascending: false });
+    if (courseId) {
+      // Get specific course assignments
+      const assignments = await getCourseAssignments(parseInt(courseId, 10));
+      return NextResponse.json(assignments);
+    }
 
-    if (error) throw error;
-
-    // Sort parts by order_index
-    const result = (data || []).map((a: any) => ({
-      ...a,
-      parts: (a.parts || []).sort(
-        (x: any, y: any) => (x.order_index || 0) - (y.order_index || 0)
-      ),
-    }));
-
-    return NextResponse.json(result);
-  } catch (error: any) {
+    // Get all academy assignments
+    const assignments = await getAssignments(academyId);
+    return NextResponse.json(assignments);
+  } catch (error) {
     console.error("Error fetching assignments:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to fetch assignments" },
+      { error: "Failed to fetch assignments" },
       { status: 500 }
     );
   }
@@ -49,14 +34,21 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { parts = [], ...assignmentData } = body;
+    const { academy_id, parts, ...assignmentData } = body;
 
-    const result = await createAssignment(assignmentData, parts);
-    return NextResponse.json(result, { status: 201 });
-  } catch (error: any) {
+    if (!academy_id) {
+      return NextResponse.json(
+        { error: "Academy ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const assignment = await createAssignment(assignmentData, parts || []);
+    return NextResponse.json(assignment, { status: 201 });
+  } catch (error) {
     console.error("Error creating assignment:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to create assignment" },
+      { error: (error as any)?.message || "Failed to create assignment" },
       { status: 500 }
     );
   }

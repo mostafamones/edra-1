@@ -83,6 +83,16 @@ export function StepOneBasics({ initialData, onUpdate }: StepOneBasicsProps) {
       }
     }
 
+    // Suggestion 4: First word logic
+    if (words.length >= 2) {
+      const firstWord = words[0].toLowerCase().replace(/[^a-z0-9]/g, "")
+      if (firstWord && !GENERIC_ACADEMY_WORDS.includes(firstWord) && firstWord.length > 2) {
+        if (!suggestions.includes(firstWord)) {
+          suggestions.push(firstWord)
+        }
+      }
+    }
+
     // Limit to 3 unique suggestions
     return Array.from(new Set(suggestions)).slice(0, 3)
   }
@@ -212,7 +222,7 @@ export function StepOneBasics({ initialData, onUpdate }: StepOneBasicsProps) {
 
               <InputGroupAddon align="inline-end">
                 <InputGroupText>
-                  .edra.acadmy
+                  .edra.academy
                 </InputGroupText>
               </InputGroupAddon>
             </InputGroup>

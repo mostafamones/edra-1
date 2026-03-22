@@ -4,7 +4,7 @@ import {
   ScheduleInsert,
   ScheduleUpdate,
   ScheduleTimeSlotInsert,
-  StudentScheduleInsert,
+  ScheduleEnrollmentInsert,
 } from '../types';
 
 const supabase: any = getServiceSupabase();
@@ -18,7 +18,7 @@ export async function getSchedules(academyId: string) {
       branch:branches(*),
       schedule_group:schedule_groups(*),
       time_slots:schedule_time_slots(*),
-      student_schedules(count)
+      schedule_enrollments(count)
     `)
     .eq('academy_id', academyId)
     .order('name');
@@ -146,9 +146,9 @@ export async function replaceTimeSlots(scheduleId: number, slots: Omit<ScheduleT
 // STUDENT ENROLLMENT
 // ========================
 
-export async function enrollStudentInSchedule(enrollment: StudentScheduleInsert) {
+export async function enrollStudentInSchedule(enrollment: ScheduleEnrollmentInsert) {
   const { error } = await supabase
-    .from('student_schedules')
+    .from('schedule_enrollments')
     .insert(enrollment);
 
   if (error) throw error;
@@ -156,7 +156,7 @@ export async function enrollStudentInSchedule(enrollment: StudentScheduleInsert)
 
 export async function unenrollStudentFromSchedule(studentId: number, scheduleId: number) {
   const { error } = await supabase
-    .from('student_schedules')
+    .from('schedule_enrollments')
     .delete()
     .eq('student_id', studentId)
     .eq('schedule_id', scheduleId);
@@ -166,7 +166,7 @@ export async function unenrollStudentFromSchedule(studentId: number, scheduleId:
 
 export async function getStudentSchedules(studentId: number) {
   const { data, error } = await supabase
-    .from('student_schedules')
+    .from('schedule_enrollments')
     .select(`
       schedule:class_schedules(
         *,
@@ -182,7 +182,7 @@ export async function getStudentSchedules(studentId: number) {
 
 export async function getScheduleStudents(scheduleId: number) {
   const { data, error } = await supabase
-    .from('student_schedules')
+    .from('schedule_enrollments')
     .select(`
       student:students(*)
     `)

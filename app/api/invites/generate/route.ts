@@ -1,4 +1,4 @@
-import { generateInvite } from "@/lib/db/invites";
+import { generateInstructorInvite } from "@/lib/db/invites";
 import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "academyId is required" }, { status: 400 });
     }
 
-    const invite = await generateInvite(academyId, email);
+    const invite = await generateInstructorInvite(academyId, email);
     return NextResponse.json(invite);
   } catch (error: any) {
     console.error("Error generating invite:", error);

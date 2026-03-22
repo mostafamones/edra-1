@@ -18,6 +18,7 @@ import {
 import { IconDashboard, IconListDetails, IconChartBar, IconFolder, IconUsers, IconCamera, IconFileDescription, IconFileAi, IconSettings, IconHelp, IconSearch, IconDatabase, IconReport, IconFileWord, IconInnerShadowTop } from "@tabler/icons-react"
 import { MainSidebarData, SecondarySidebarData, SidebarNotes } from "@/components/helpers/sidebar"
 import { useAuth } from "./auth-provider"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from "./ui/dropdown-menu"
 
 const data = {
   navMain: [
@@ -179,10 +180,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:p-1.5! "
             >
-              <div>
-                <IconInnerShadowTop className="size-5!" />
-                <span className="text-base font-bold">Edra Academy</span>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger>
+                  <IconInnerShadowTop className="size-5!" />
+                  <span className="text-base font-bold">Edra Academy</span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+
+                </DropdownMenuContent>
+              </DropdownMenu>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

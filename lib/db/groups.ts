@@ -1,67 +1,67 @@
 import { getServiceSupabase } from '../supabase';
-import { Branch, BranchInsert, BranchUpdate } from '../types';
+import { Group, GroupInsert, GroupUpdate } from '../types';
 
 const supabase: any = getServiceSupabase();
 
-export async function getBranches(academyId: string) {
+export async function getGroups(academyId: string) {
   const { data, error } = await supabase
-    .from('branches')
+    .from('groups')
     .select('*')
     .eq('academy_id', academyId)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data as Branch[];
+  return data as Group[];
 }
 
-export async function getBranchesByLevel(levelId: number) {
+export async function getGroupsByLevel(levelId: number) {
   const { data, error } = await supabase
-    .from('branches')
+    .from('groups')
     .select('*')
     .eq('level_id', levelId)
     .order('name');
 
   if (error) throw error;
-  return data as Branch[];
+  return data as Group[];
 }
 
-export async function getBranch(id: number) {
+export async function getGroup(id: number) {
   const { data, error } = await supabase
-    .from('branches')
+    .from('groups')
     .select('*')
     .eq('id', id)
     .single();
 
   if (error) throw error;
-  return data as Branch;
+  return data as Group;
 }
 
-export async function createBranch(branch: BranchInsert) {
+export async function createGroup(group: GroupInsert) {
   const { data, error } = await supabase
-    .from('branches')
-    .insert(branch)
+    .from('groups')
+    .insert(group)
     .select()
     .single();
 
   if (error) throw error;
-  return data as Branch;
+  return data as Group;
 }
 
-export async function updateBranch(id: number, updates: BranchUpdate) {
+export async function updateGroup(id: number, updates: GroupUpdate) {
   const { data, error } = await supabase
-    .from('branches')
+    .from('groups')
     .update(updates)
     .eq('id', id)
     .select()
     .single();
 
   if (error) throw error;
-  return data as Branch;
+  return data as Group;
 }
 
-export async function deleteBranch(id: number) {
+export async function deleteGroup(id: number) {
   const { error } = await supabase
-    .from('branches')
+    .from('groups')
     .delete()
     .eq('id', id);
 

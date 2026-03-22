@@ -1,5 +1,6 @@
-import { getAcademy, updateAcademy, getInstructors } from "@/lib";
-import { getServiceSupabase } from "@/lib/supabase";
+import { getAcademy, updateAcademy } from "@/lib/db/academies";
+import { getAcademyMemberships as getMemberships } from "@/lib/db/academy-memberships";
+import { getServiceSupabase } from "@/utils/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -13,12 +14,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const [academy, instructors] = await Promise.all([
+    const [academy, memberships] = await Promise.all([
       getAcademy(academyId),
-      getInstructors(academyId),
+      getMemberships(academyId),
     ]);
 
-    const activeInstructors = instructors.filter((i) => i.is_active !== false);
+    // Count active instructors (those with active memberships)
+    const activeInstructorCount = memberships?.filter(m => m.is_active).length || 0;
 
     // Fetch owner email from auth.users
     let ownerEmail: string | null = null;
@@ -32,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       ...academy,
-      instructor_count: activeInstructors.length,
+      instructor_count: activeInstructorCount,
       owner_email: ownerEmail,
     });
   } catch (error) {

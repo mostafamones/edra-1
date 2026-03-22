@@ -1,4 +1,4 @@
-import { acceptInviteToken } from "@/lib/db/invites";
+import { acceptInstructorInviteToken } from "@/lib/db/invites";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Token is required" }, { status: 400 });
     }
 
-    const invite = await acceptInviteToken(token);
+    const invite = await acceptInstructorInviteToken(token);
     return NextResponse.json(invite);
   } catch (error: any) {
     console.error("Error accepting invite token:", error);

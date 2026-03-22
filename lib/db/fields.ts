@@ -1,21 +1,21 @@
-
 import { getServiceSupabase } from "@/lib/supabase";
 import { StudentField, StudentFieldInsert, StudentFieldUpdate } from "@/lib/types";
 
 const supabase = getServiceSupabase();
 
-export async function getAcademyIdByInstructor(userId: string) {
+export async function getAcademyIdByInstructor(instructorId: string) {
   const { data, error } = await supabase
-    .from("instructors")
+    .from("academy_memberships")
     .select("academy_id")
-    .eq("id", userId)
+    .eq("instructor_id", instructorId)
+    .eq("is_active", true)
     .single();
 
   if (error) {
     throw new Error(error.message);
   }
 
-  return (data as any).academy_id;
+  return (data as any)?.academy_id;
 }
 
 export async function getFields(academyId: string) {
@@ -115,4 +115,3 @@ export async function saveStudentFieldValues(
     throw new Error(error.message);
   }
 }
-

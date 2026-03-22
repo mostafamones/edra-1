@@ -1,71 +1,72 @@
-import { getSessionsByDateRange, createSession } from "@/lib/db/sessions";
-import type { SessionInsert } from "@/lib/types";
 import { createClient } from "@/utils/supabase/server";
+import { getSessions, getSession, createSession, updateSession, deleteSession, getSessionsByDateRange } from "@/lib/db/sessions";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { searchParams } = request.nextUrl;
+    const scheduleId = searchParams.get("scheduleId");
 
-    const academyId = request.nextUrl.searchParams.get("academyId");
-    if (!academyId) {
-      return NextResponse.json({ error: "Academy ID is required" }, { status: 400 });
+    if (!scheduleId) {
+      return NextResponse.json(
+        { error: "Schedule ID is required" },
+        { status: 400 }
+      );
     }
 
-    const today = new Date();
-    const startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const endDate = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000);
-
-    const sessions = await getSessionsByDateRange(
-      academyId,
-      startDate.toISOString().split('T')[0],
-      endDate.toISOString().split('T')[0]
-    );
-
+    const sessions = await getSessions(parseInt(scheduleId, 10));
     return NextResponse.json(sessions);
   } catch (error) {
     console.error("Error fetching sessions:", error);
-    return NextResponse.json({ error: "Failed to fetch sessions" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch sessions" },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
     const body = await request.json();
-    const { schedule_id, session_date } = body;
+    const { schedule_id, session_date, academy_id } = body;
 
-    if (!schedule_id || !session_date) {
-      return NextResponse.json({ error: "schedule_id and session_date are required" }, { status: 400 });
+    if (!schedule_id || !session_date || !academy_id) {
+      return NextResponse.json(
+        { error: "Schedule ID, session date, and academy ID are required" },
+        { status: 400 }
+      );
     }
 
-    const { data: instructor } = await supabase
-      .from("instructors")
-      .select("academy_id")
-      .eq("id", user.id)
-      .single();
-
-    if (!instructor) {
-      return NextResponse.json({ error: "Instructor not found" }, { status: 404 });
-    }
-
-    const sessionData: SessionInsert = {
-      academy_id: instructor.academy_id,
-      schedule_id: Number(schedule_id),
-      session_date,
-      status: "live",
-      is_cancelled: false,
-    };
-
-    const session = await createSession(sessionData);
-    return NextResponse.json(session);
-  } catch (error: any) {
+    const session = await createSession({ schedule_id, session_date, academy_id });
+    return NextResponse.json(session, { status: 201 });
+  } catch (error) {
     console.error("Error creating session:", error);
-    return NextResponse.json({ error: error?.message || "Failed to create session" }, { status: 500 });
+    return NextResponse.json(
+      { error: (error as any)?.message || "Failed to create session" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = request.nextUrl;
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Session ID is required" },
+        { status: 400 }
+      );
+    }
+
+    await deleteSession(parseInt(id, 10));
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting session:", error);
+    return NextResponse.json(
+      { error: "Failed to delete session" },
+      { status: 500 }
+    );
   }
 }

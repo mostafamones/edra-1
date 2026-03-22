@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { IconChevronLeft, IconChevronRight, IconCheck, IconSchool } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { StepOneBasics } from "./step-one-basics"
+import { StepTwoStructure } from "./step-two-structure"
 import { ACADEMY_ICONS } from "@/lib/constants"
 import { StepPlaceholder } from "./step-placeholder"
 import { cn } from "@/lib/utils"
@@ -37,6 +38,7 @@ export function CreateAcademyStepper() {
     subdomain: "",
     icon: "school",
     subject: "",
+    levels: [] as Array<{ id: string; name: string; groups: Array<{ id: string; name: string }> }>,
   })
 
   // Handlers for navigating the wizard
@@ -47,6 +49,9 @@ export function CreateAcademyStepper() {
   const isCurrentStepValid = () => {
     if (currentStep === 1) {
       return academyData.name.trim().length > 0
+    }
+    if (currentStep === 2) {
+      return academyData.levels.length > 0 && academyData.levels.every(l => l.name.trim().length > 0)
     }
     // Assume placeholders are always valid for now
     return true
@@ -162,9 +167,9 @@ export function CreateAcademyStepper() {
           {/* Dynamic Step Content */}
           <motion.div
             layout
-            className="rounded-xl border bg-card text-card-foreground shadow p-2 py-6 flex flex-col relative overflow-hidden min-h-[500px]"
+            className="rounded-xl border bg-card text-card-foreground shadow p-2 py-6 flex flex-col relative overflow-hidden h-[500px]"
           >
-            <div className="flex-1 relative">
+            <div className="relative h-full">
               <AnimatePresence initial={false} custom={direction}>
                 <motion.div
                   key={currentStep}
@@ -178,7 +183,7 @@ export function CreateAcademyStepper() {
                     opacity: { duration: 0.2 },
                     layout: { type: "spring", stiffness: 300, damping: 30 }
                   }}
-                  className="w-full"
+                  className="w-full h-full"
                 >
                   {currentStep === 1 && (
                     <StepOneBasics
@@ -186,7 +191,12 @@ export function CreateAcademyStepper() {
                       onUpdate={(data) => setAcademyData({ ...academyData, ...data })}
                     />
                   )}
-                  {currentStep === 2 && <StepPlaceholder stepNumber={2} />}
+                  {currentStep === 2 && (
+                    <StepTwoStructure
+                      initialData={{ levels: academyData.levels }}
+                      onUpdate={(data) => setAcademyData({ ...academyData, ...data })}
+                    />
+                  )}
                   {currentStep === 3 && <StepPlaceholder stepNumber={3} />}
                   {currentStep === 4 && <StepPlaceholder stepNumber={4} />}
                 </motion.div>
