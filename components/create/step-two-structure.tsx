@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -53,6 +53,10 @@ interface StepTwoStructureProps {
     levels: Level[]
   }
   onUpdate: (data: { levels: Level[] }) => void
+  /** When true (first visit to this step in the wizard), expand up to MAX levels that have groups. */
+  autoExpandOnMount?: boolean
+  /** Called once after auto-expand is applied so the parent can skip auto-expand on later visits. */
+  onAutoExpandConsumed?: () => void
 }
 
 const LEVEL_COLOR_PRESETS = [
@@ -144,16 +148,49 @@ function ColorSelector({
   )
 }
 
-export function StepTwoStructure({ initialData, onUpdate }: StepTwoStructureProps) {
-  const initialExpanded = useMemo(() => {
-    const ids = (initialData.levels || [])
-      .filter((l) => l.groups.length > 0)
-      .map((l) => l.id)
-    return new Set(ids)
-  }, [initialData.levels])
+const MAX_EXPANDED_LEVELS = 2
 
+/** Add levelId to expanded set; if more than max, drop oldest-opened (Set insertion order). */
+function expandLevelWithCap(prev: Set<string>, levelId: string): Set<string> {
+  const next = new Set(prev)
+  if (next.has(levelId)) return next
+  next.add(levelId)
+  while (next.size > MAX_EXPANDED_LEVELS) {
+    const oldest = next.keys().next().value
+    if (oldest === undefined) break
+    next.delete(oldest)
+  }
+  return next
+}
+
+function initialExpandedFromLevels(
+  levels: Level[],
+  autoExpand: boolean
+): Set<string> {
+  if (!autoExpand) return new Set()
+  const ids = levels
+    .filter((l) => l.groups.length > 0)
+    .map((l) => l.id)
+  return new Set(ids.slice(0, MAX_EXPANDED_LEVELS))
+}
+
+export function StepTwoStructure({
+  initialData,
+  onUpdate,
+  autoExpandOnMount = true,
+  onAutoExpandConsumed,
+}: StepTwoStructureProps) {
   const [levels, setLevels] = useState<Level[]>(initialData.levels || [])
-  const [expandedLevels, setExpandedLevels] = useState<Set<string>>(initialExpanded)
+  const [expandedLevels, setExpandedLevels] = useState<Set<string>>(() =>
+    initialExpandedFromLevels(initialData.levels || [], autoExpandOnMount)
+  )
+
+  useEffect(() => {
+    if (autoExpandOnMount) {
+      onAutoExpandConsumed?.()
+    }
+    // Only on mount: prop reflects whether this visit is the first time opening Structure.
+  }, [])
 
   const [editingLevelId, setEditingLevelId] = useState<string | null>(null)
   const [editingLevelName, setEditingLevelName] = useState("")
@@ -172,13 +209,26 @@ export function StepTwoStructure({ initialData, onUpdate }: StepTwoStructureProp
     onUpdate({ levels: newLevels })
   }
 
+  const closeAddLevelInline = () => {
+    setShowAddLevel(false)
+    setAddingLevelName("")
+    setAddingLevelColor(DEFAULT_LEVEL_COLOR_ID)
+  }
+
+  const beginEditLevel = (level: Level) => {
+    closeAddLevelInline()
+    setEditingLevelId(level.id)
+    setEditingLevelName(level.name)
+    setEditingLevelColor(level.color ?? DEFAULT_LEVEL_COLOR_ID)
+  }
+
   const toggleLevel = (levelId: string) => {
     setExpandedLevels((prev) => {
       const next = new Set(prev)
       if (next.has(levelId)) {
         next.delete(levelId)
       } else {
-        next.add(levelId)
+        return expandLevelWithCap(prev, levelId)
       }
       return next
     })
@@ -242,7 +292,7 @@ export function StepTwoStructure({ initialData, onUpdate }: StepTwoStructureProp
     updateLevels(newLevels)
     setAddingGroupName("")
     setAddingGroupToLevel(null)
-    setExpandedLevels((prev) => new Set(prev).add(levelId))
+    setExpandedLevels((prev) => expandLevelWithCap(prev, levelId))
   }
 
   const handleUpdateGroup = (levelId: string, groupId: string) => {
@@ -303,18 +353,20 @@ export function StepTwoStructure({ initialData, onUpdate }: StepTwoStructureProp
             </div>
           </div>
         ) : (
-          <Button
-            variant="outline"
-            onClick={() => {
-              setShowAddLevel(true)
-              setAddingLevelName("")
-              setAddingLevelColor(DEFAULT_LEVEL_COLOR_ID)
-            }}
-            className="gap-1.5 h-10 w-full"
-          >
-            <IconPlus className="size-5" />
-            Add Level
-          </Button>
+          <div className="flex items-center justify-center h-15">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAddLevel(true)
+                setAddingLevelName("")
+                setAddingLevelColor(DEFAULT_LEVEL_COLOR_ID)
+              }}
+              className="gap-1.5 h-10 w-full"
+            >
+              <IconPlus className="size-5" />
+              Add Level
+            </Button>
+          </div>
         )}
 
         <div className="flex flex-col gap-3">
@@ -415,7 +467,7 @@ export function StepTwoStructure({ initialData, onUpdate }: StepTwoStructureProp
                               variant="secondary"
                               className="text-[11px]"
                             >
-                              {level.groups.length} group
+                              {level.groups.length} Group
                               {level.groups.length !== 1 ? "s" : ""}
                             </Badge>
                           </TooltipTrigger>
@@ -441,7 +493,7 @@ export function StepTwoStructure({ initialData, onUpdate }: StepTwoStructureProp
                         onClick={() => {
                           setAddingGroupToLevel(level.id)
                           setAddingGroupName("")
-                          setExpandedLevels((prev) => new Set(prev).add(level.id))
+                          setExpandedLevels((prev) => expandLevelWithCap(prev, level.id))
                         }}
                         title="Add group"
                       >
@@ -451,11 +503,7 @@ export function StepTwoStructure({ initialData, onUpdate }: StepTwoStructureProp
                         variant="ghost"
                         size="sm"
                         className="size-9 p-0 text-muted-foreground hover:text-foreground"
-                        onClick={() => {
-                          setEditingLevelId(level.id)
-                          setEditingLevelName(level.name)
-                          setEditingLevelColor(level.color ?? DEFAULT_LEVEL_COLOR_ID)
-                        }}
+                        onClick={() => beginEditLevel(level)}
                         title="Rename level"
                       >
                         <IconEdit className="size-4" />

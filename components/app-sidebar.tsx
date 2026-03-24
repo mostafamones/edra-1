@@ -6,6 +6,7 @@ import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
+import { AcademySwitcher } from "@/components/academy-switcher"
 import {
   Sidebar,
   SidebarContent,
@@ -174,24 +175,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:p-1.5! "
-            >
-              <DropdownMenu>
-                <DropdownMenuTrigger>
-                  <IconInnerShadowTop className="size-5!" />
-                  <span className="text-base font-bold">Edra Academy</span>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <AcademySwitcher />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={MainSidebarData} />

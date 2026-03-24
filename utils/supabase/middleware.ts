@@ -53,8 +53,11 @@ export async function updateSession(request: NextRequest) {
 
   // Prevent logged in users from visiting login page
   if (user && isPublicRoute(pathname) && pathname !== '/') {
+    // We don't have a reliable single dashboard at the root anymore.
+    // Let the AuthProvider (Client Component) determine which academy dashboard it should load.
+    // For now, redirecting to / ensures the AuthProvider can catch the user and route them.
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = "/";
     return NextResponse.redirect(url);
   }
 

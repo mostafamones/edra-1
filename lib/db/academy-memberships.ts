@@ -25,13 +25,13 @@ export async function getInstructorAcademies(instructorId: string) {
     .from('academy_memberships')
     .select(`
       *,
-      academy:academies(name, id)
+      academy:academies(id, name, subdomain, icon)
     `)
     .eq('instructor_id', instructorId)
     .eq('is_active', true);
 
   if (error) throw error;
-  return data as (AcademyMembership & { academy: any })[];
+  return data as (AcademyMembership & { academy: { id: string; name: string; subdomain: string; icon: string | null } })[];
 }
 
 export async function getAcademyMembership(academyId: string, instructorId: string) {

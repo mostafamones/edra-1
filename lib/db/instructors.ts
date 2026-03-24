@@ -48,10 +48,10 @@ export async function getInstructorByUserId(userId: string) {
       user:users(email, full_name, avatar_url)
     `)
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
-  return data as (Instructor & { user?: any });
+  return data as (Instructor & { user?: any }) | null;
 }
 
 export async function createInstructor(instructor: InstructorInsert) {
