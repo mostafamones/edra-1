@@ -14,8 +14,8 @@ export {
   invalidateAcademy,
   useLevels,
   invalidateLevels,
-  useBranches,
-  invalidateBranches,
+  useGroups,
+  invalidateGroups,
   useFields,
   invalidateFields,
 } from "./use-data";

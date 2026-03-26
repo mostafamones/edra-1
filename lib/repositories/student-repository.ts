@@ -31,16 +31,17 @@ export interface PaginatedResult<T> {
 const LIST_SELECT = `
   *,
   level:levels(*),
-  branch:branches(*),
-  student_schedules(schedule:class_schedules(*)),
+  group:groups(*),
+  schedule_enrollments(schedule:class_schedules(*)),
   student_field_values(*)
 `;
 
 const DETAIL_SELECT = `
   *,
   level:levels(*),
-  branch:branches(*),
-  student_schedules(schedule:class_schedules(*))
+  group:groups(*),
+  schedule_enrollments(schedule:class_schedules(*)),
+  student_field_values(*)
 `;
 
 // ============================================================================

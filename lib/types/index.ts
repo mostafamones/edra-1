@@ -199,6 +199,15 @@ export type StudentWithLevel = Student & {
   }[] | null;
 };
 
+export type StudentWithLevelRating = Student & {
+  level: Level | null;
+  group: Group | null;
+  schedule_enrollments?: {
+    schedule: Schedule | null;
+  }[] | null;
+  student_field_values?: StudentFieldValue[] | null;
+};
+
 export type SessionWithSchedule = Session & {
   schedule: Schedule & {
     level: Level | null;

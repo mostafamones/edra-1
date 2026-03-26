@@ -1,14 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { tabs } from "@/components/helpers/settings"
-import { getCurrentUserAcademy } from "@/lib/user"
+import { resolveAcademyBasePath } from "@/components/helpers/sidebar"
+import { useAuth } from "@/components/auth-provider"
 
 export function SettingsTabs({ defaultValue }: { defaultValue?: string }) {
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
+  const { activeAcademy } = useAuth()
 
   const [activeTab, setActiveTab] = useState<string>(() => {
     const currentTab = searchParams.get("tab")
@@ -21,13 +24,7 @@ export function SettingsTabs({ defaultValue }: { defaultValue?: string }) {
     return matchedTab.title
   })
 
-  const [academyId, setAcademyId] = useState<string | null>(null)
-
-  useEffect(() => {
-    getCurrentUserAcademy().then((id) => {
-      if (id) setAcademyId(id)
-    })
-  }, [])
+  const academyId = activeAcademy?.id ?? null
 
   useEffect(() => {
     const currentTab = searchParams.get("tab")
@@ -39,9 +36,13 @@ export function SettingsTabs({ defaultValue }: { defaultValue?: string }) {
 
       const params = new URLSearchParams(searchParams.toString())
       params.delete("tab")
-      router.replace(`/settings${params.toString() ? `?${params.toString()}` : ""}`, { scroll: false })
+      const academyBase = resolveAcademyBasePath(pathname)
+      router.replace(
+        `${academyBase}/settings${params.toString() ? `?${params.toString()}` : ""}`,
+        { scroll: false }
+      )
     }
-  }, [searchParams, router])
+  }, [pathname, searchParams, router])
 
   const handleTabChange = (value: string) => {
     setActiveTab(value)

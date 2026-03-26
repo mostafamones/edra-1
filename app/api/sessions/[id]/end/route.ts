@@ -60,7 +60,7 @@ export async function POST(
 
     // 2. Process Absent Backfill
     const { data: enrolledData } = await supabase
-      .from('student_schedules')
+      .from('schedule_enrollments')
       .select('student_id')
       .eq('schedule_id', targetScheduleId)
       .eq('academy_id', academyId)
@@ -97,7 +97,7 @@ export async function POST(
       for (const studentId of migrations) {
         // Find existing schedule mapping to replace
         const { data: existingSchedules, error: getError } = await supabase
-          .from('student_schedules')
+          .from('schedule_enrollments')
           .select('schedule_id')
           .eq('student_id', studentId)
           .eq('academy_id', academyId)
@@ -105,7 +105,7 @@ export async function POST(
         if (!getError && existingSchedules && existingSchedules.length > 0) {
           // Delete the old ones (usually one, but could be multiple)
           await supabase
-            .from('student_schedules')
+            .from('schedule_enrollments')
             .delete()
             .eq('student_id', studentId)
             .eq('academy_id', academyId)
@@ -113,7 +113,7 @@ export async function POST(
 
         // Insert the new one
         await supabase
-          .from('student_schedules')
+          .from('schedule_enrollments')
           .insert({
             student_id: studentId,
             schedule_id: targetScheduleId,

@@ -1,4 +1,5 @@
 import { getStudents, createStudent, updateStudent, deleteStudent } from "@/lib/db/students";
+import { saveStudentFieldValues } from "@/lib/db/fields";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -26,15 +27,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { fieldValues, schedule_id, course_id, ...studentData } = body;
+    const { fieldValues, schedule_id, ...studentData } = body;
 
-    // Default status to 'active' if not provided
-    const studentWithDefaults = {
+    const student = await createStudent({
       ...studentData,
       status: studentData.status || 'active',
-    };
+    });
 
-    const student = await createStudent(studentWithDefaults);
+    if (fieldValues && Array.isArray(fieldValues) && fieldValues.length > 0) {
+      await saveStudentFieldValues(student.academy_id, student.id, fieldValues);
+    }
+
     return NextResponse.json(student, { status: 201 });
   } catch (error) {
     console.error("Error creating student:", error);

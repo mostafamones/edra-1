@@ -2,7 +2,10 @@
 // This file provides easy access to all database functions and types
 
 import * as db from './db';
-const { InviteStatus, ...dbRest } = db;
+// Keep legacy behavior: export `db` namespace without `InviteStatus`.
+const { InviteStatus: _inviteStatus, ...dbRest } = db as typeof db & {
+  InviteStatus?: unknown;
+};
 export { dbRest as db };
 export * from './types';
 export * from './hashid';

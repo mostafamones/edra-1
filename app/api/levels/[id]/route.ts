@@ -1,4 +1,4 @@
-import { getLevel, updateLevel, deleteLevel } from "@/lib";
+import { getLevel, updateLevel, deleteLevel } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(

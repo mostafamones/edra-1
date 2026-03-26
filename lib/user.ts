@@ -21,25 +21,27 @@ export async function getCurrentUserAcademy(): Promise<string | null> {
       return userMetadata.academy_id;
     }
 
-    // Fallback: query instructors table (may hit RLS, but try it)
-    console.log('Academy ID not in user metadata, querying instructors table...');
+    // Fallback: query instructor context view (joins memberships + instructors)
+    console.log('Academy ID not in user metadata, querying instructor context...');
 
     const { data: instructorData, error } = await supabase
-      .from('instructors')
+      .from('v_instructor_context')
       .select('academy_id')
-      .eq('id', session.user.id)
+      .eq('user_id', session.user.id)
+      .eq('is_active', true)
+      .order('joined_at', { ascending: false })
       .limit(1)
-      .maybeSingle<{ academy_id: string }>();
+      .maybeSingle<{ academy_id: string | null }>();
 
     if (error) {
-      console.error('Error fetching instructor from database:', error.message || error);
+      console.error('Error fetching instructor context from database:', error.message || error);
       // This often happens due to RLS policies blocking the query
       // The academy_id should be in user metadata if login/signup handled it correctly
       return null;
     }
 
     if (!instructorData) {
-      console.warn('No instructor record found for user:', session.user.id);
+      console.warn('No active instructor membership found for user:', session.user.id);
       return null;
     }
 
@@ -47,6 +49,31 @@ export async function getCurrentUserAcademy(): Promise<string | null> {
     return instructorData.academy_id || null;
   } catch (error) {
     console.error('Unexpected error fetching user academy:', error);
+    return null;
+  }
+}
+
+/**
+ * Resolve academy ID for the current URL subdomain.
+ *
+ * This avoids relying on `user_metadata.academy_id`, which can represent a
+ * different (previously active) academy when the user belongs to multiple.
+ */
+export async function getCurrentUserAcademyForSubdomain(
+  subdomain: string | null | undefined
+): Promise<string | null> {
+  if (!subdomain) return null;
+
+  try {
+    const res = await fetch("/api/academy/me");
+    if (!res.ok) return null;
+    const body = (await res.json()) as {
+      academies?: { id: string; subdomain: string }[];
+    };
+
+    const match = (body.academies ?? []).find((a) => a.subdomain === subdomain);
+    return match?.id ?? null;
+  } catch {
     return null;
   }
 }
@@ -72,23 +99,25 @@ export async function getCurrentUserRole(): Promise<string | null> {
       return userMetadata.role;
     }
 
-    // Fallback: query instructors table (may hit RLS, but try it)
-    console.log('Role not in user metadata, querying instructors table...');
+    // Fallback: query instructor context view (joins memberships + instructors)
+    console.log('Role not in user metadata, querying instructor context...');
 
     const { data: instructorData, error } = await supabase
-      .from('instructors')
+      .from('v_instructor_context')
       .select('role')
-      .eq('id', session.user.id)
+      .eq('user_id', session.user.id)
+      .eq('is_active', true)
+      .order('joined_at', { ascending: false })
       .limit(1)
-      .maybeSingle<{ role: string }>();
+      .maybeSingle<{ role: string | null }>();
 
     if (error) {
-      console.error('Error fetching instructor role:', error);
+      console.error('Error fetching instructor role from context:', error);
       return null;
     }
 
     if (!instructorData) {
-      console.warn('No instructor record found for user:', session.user.id);
+      console.warn('No active instructor membership found for user:', session.user.id);
       return null;
     }
 

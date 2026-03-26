@@ -21,9 +21,9 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { IconDotsVertical, IconLogout } from "@tabler/icons-react"
-import { UserDropdown } from "./helpers/sidebar"
+import { UserDropdown, withAcademyPath } from "./helpers/sidebar"
 import { supabase } from "@/lib/supabase"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 
 export function NavUser({
   user,
@@ -36,13 +36,14 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const router = useRouter()
+  const pathname = usePathname()
 
   function UserDetails() {
     return (
       <>
-        <Avatar className="h-8 w-8 rounded-lg">
+        <Avatar className="size-8">
           <AvatarImage src={user.avatar} alt={user.name} />
-          <AvatarFallback className="rounded-lg">M</AvatarFallback>
+          <AvatarFallback className="text-xs">M</AvatarFallback>
         </Avatar>
         <div className="grid flex-1 text-left text-sm leading-tight">
           <span className="truncate font-medium">{user.name}</span>
@@ -81,9 +82,11 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               {UserDropdown.items.map((item) => (
-                <DropdownMenuItem key={item.title}>
-                  <item.icon />
-                  {item.title}
+                <DropdownMenuItem key={item.title} asChild>
+                  <a href={withAcademyPath(pathname, item.url)}>
+                    <item.icon />
+                    {item.title}
+                  </a>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuGroup>

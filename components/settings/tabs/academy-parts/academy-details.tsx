@@ -1,132 +1,126 @@
 "use client"
 
-import { useEffect, useState } from "react";
-import { useAcademy } from "@/lib/hooks/use-data";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
+import { useEffect, useState } from "react"
+import { useAcademy } from "@/lib/hooks/use-data"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "sonner"
 import {
+  IconBuildingArch,
+  IconCheck,
+  IconCopy,
+  IconDeviceFloppy,
+  IconEdit,
+  IconEye,
   IconSchool,
   IconUserStar,
-  IconCalendar,
   IconUsers,
-  IconEdit,
-  IconDeviceFloppy,
   IconX,
-  IconCopy,
-  IconCheck,
-  IconEye,
-} from "@tabler/icons-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+} from "@tabler/icons-react"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldSeparator,
+} from "@/components/ui/field"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "@/components/ui/input-group"
 
 export function AcademyDetails({
   disabled,
   academyId,
 }: {
-  disabled?: boolean;
-  academyId?: string;
+  disabled?: boolean
+  academyId?: string
 }) {
-  const { data: academy, loading, setData: setAcademy, refresh } = useAcademy(academyId || null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const { data: academy, loading, setData: setAcademy, refresh } = useAcademy(academyId || null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [copied, setCopied] = useState(false)
 
-  // Form state
-  const [editName, setEditName] = useState("");
-
-  // Track if changes were made
-  const [hasChanges, setHasChanges] = useState(false);
+  const [editName, setEditName] = useState("")
+  const [hasChanges, setHasChanges] = useState(false)
 
   useEffect(() => {
     if (academy) {
-      setEditName(academy.name);
+      setEditName(academy.name)
     }
-  }, [academy]);
+  }, [academy])
 
   useEffect(() => {
     if (academy) {
-      setHasChanges(editName !== academy.name);
+      setHasChanges(editName !== academy.name)
     }
-  }, [editName, academy]);
+  }, [editName, academy])
 
   const handleEdit = () => {
-    if (disabled) return;
-    setIsEditing(true);
-    setEditName(academy?.name || "");
-  };
+    if (disabled) return
+    setIsEditing(true)
+    setEditName(academy?.name || "")
+  }
 
   const handleCancel = () => {
-    setIsEditing(false);
-    setEditName(academy?.name || "");
-    setHasChanges(false);
-  };
+    setIsEditing(false)
+    setEditName(academy?.name || "")
+    setHasChanges(false)
+  }
 
   const handleSave = async () => {
-    if (!academy || !hasChanges) return;
-    setIsSaving(true);
+    if (!academy || !hasChanges) return
+    setIsSaving(true)
     try {
       const res = await fetch("/api/academy", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: academy.id, name: editName.trim() }),
-      });
+      })
 
-      if (!res.ok) throw new Error("Failed to update");
+      if (!res.ok) throw new Error("Failed to update")
 
-      const updated = await res.json();
-      setAcademy((prev) => (prev ? { ...prev, ...updated } : prev));
-      setIsEditing(false);
-      setHasChanges(false);
-      toast.success("Academy settings saved successfully.");
+      const updated = await res.json()
+      setAcademy((prev) => (prev ? { ...prev, ...updated } : prev))
+      setIsEditing(false)
+      setHasChanges(false)
+      toast.success("Academy settings saved successfully.")
     } catch (err) {
-      console.error("Error saving academy:", err);
-      toast.error("Could not save changes. Please try again.");
+      console.error("Error saving academy:", err)
+      toast.error("Could not save changes. Please try again.")
     } finally {
-      setIsSaving(false);
+      setIsSaving(false)
     }
-  };
+  }
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return "—";
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
+  const formatDateTime = (dateStr: string | null) =>
+    dateStr ? new Date(dateStr).toLocaleString("en-US") : "—"
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-9 w-24" />
+      <Card className="border-input/70">
+        <CardHeader className="space-y-2">
+          <Skeleton className="h-7 w-40" />
+          <Skeleton className="h-4 w-72" />
         </CardHeader>
-        <CardContent className="grid gap-5">
-          <div className="grid gap-5">
-            {[1, 2].map((i) => (
-              <div key={i} className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-9 w-full" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-9 w-full" />
-                </div>
-              </div>
-            ))}
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-9 w-full" />
-            </div>
-          </div>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
         </CardContent>
       </Card>
-    );
+    )
   }
 
   if (!academy) {
@@ -140,158 +134,141 @@ export function AcademyDetails({
           </Button>
         </CardContent>
       </Card>
-    );
+    )
   }
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(academy.id);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 3000);
-  };
+    navigator.clipboard.writeText(academy.id)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 3000)
+  }
 
   return (
-    <Card>
-      {/* Header */}
-      <CardHeader className="flex flex-row justify-between items-start pt-6 mb-4">
-        <div>
-          <CardTitle className="text-lg">Academy Details</CardTitle>
-          <CardDescription>View and manage your academy information</CardDescription>
+    <div className="border-input/70">
+      <CardHeader className="pb-2 text-left">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-2xl font-semibold">Academy Details</CardTitle>
+            <CardDescription className="mt-1 text-sm">
+              Update identity and review your workspace metadata.
+            </CardDescription>
+          </div>
+          {disabled ? (
+            <Badge variant="outline" className="gap-1.5">
+              <IconEye className="size-3.5" />
+              View Only
+            </Badge>
+          ) : !isEditing ? (
+            <Button type="button" variant="outline" onClick={handleEdit} className="gap-1.5">
+              <IconEdit className="size-4" />
+              Edit
+            </Button>
+          ) : null}
         </div>
-        {!disabled && !isEditing && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleEdit}
-            className="gap-1.5 h-9"
-          >
-            <IconEdit className="size-4" />
-            Edit
-          </Button>
-        )}
-        {disabled && (
-          <Badge variant="outline" className="text-xs gap-1.5 h-9">
-            <IconEye className="h-4 w-4" />
-            View Only
-          </Badge>
-        )}
       </CardHeader>
 
-      <CardContent className="flex flex-col gap-6 w-full">
-        {/* Form Fields */}
-        <div className="grid gap-5">
-          <div className="grid grid-cols-2 gap-4">
-            {/* Academy Name */}
-            <div className="flex flex-col gap-2">
-              <Label
-                htmlFor="academy-name"
-                className="flex items-center gap-1.5 text-muted-foreground"
-              >
-                <IconSchool className="size-3.5" />
-                Academy Name
-              </Label>
-              {isEditing ? (
-                <Input
-                  id="academy-name"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  placeholder="Enter academy name"
-                  autoFocus
-                />
-              ) : (
-                <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm">
-                  {academy.name}
-                </div>
-              )}
-            </div>
+      <CardContent className="space-y-6">
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="academy-name" className="text-muted-foreground">
+              <IconSchool className="size-3.5" />
+              Academy Name
+            </FieldLabel>
+            {isEditing ? (
+              <Input
+                id="academy-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Enter academy name"
+                autoFocus
+              />
+            ) : (
+              <Input value={academy.name} readOnly className="bg-muted/30" />
+            )}
+          </Field>
 
-            {/* Owner */}
-            <div className="flex flex-col gap-2">
-              <Label className="flex items-center gap-1.5 text-muted-foreground">
+          <FieldSeparator variant="card">Organization</FieldSeparator>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Field>
+              <FieldLabel className="text-muted-foreground">
                 <IconUserStar className="size-3.5" />
                 Owner
-              </Label>
-              <div className="flex h-9 w-full items-center gap-2 rounded-md border border-input bg-muted/40 px-3 text-sm">
-                <span>{academy.owner_email || "—"}</span>
-                <Badge variant="destructive" className="ml-auto text-[10px] px-1.5 py-0">
-                  Owner
-                </Badge>
-              </div>
-            </div>
-          </div>
+              </FieldLabel>
+              <InputGroup>
+                <InputGroupInput value={academy.owner_email || "—"} readOnly />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupText>
+                    <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">
+                      Owner
+                    </Badge>
+                  </InputGroupText>
+                </InputGroupAddon>
+              </InputGroup>
+            </Field>
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* Created Date */}
-            <div className="flex flex-col gap-2">
-              <Label className="flex items-center gap-1.5 text-muted-foreground">
-                <IconCalendar className="size-3.5" />
-                Created On
-              </Label>
-              <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm">
-                {formatDate(academy.created_at)}
-              </div>
-            </div>
-
-            {/* Instructor Count */}
-            <div className="flex flex-col gap-2">
-              <Label className="flex items-center gap-1.5 text-muted-foreground">
+            <Field>
+              <FieldLabel className="text-muted-foreground">
                 <IconUsers className="size-3.5" />
                 Active Instructors
-              </Label>
-              <div className="flex h-9 w-full items-center gap-2 rounded-md border border-input bg-muted/40 px-3 text-sm">
-                <span>{academy.instructor_count}</span>
-                <Badge
-                  variant="secondary"
-                  className="ml-auto text-[10px] px-1.5 py-0"
-                >
-                  {academy.instructor_count === 1 ? "Member" : "Members"}
-                </Badge>
-              </div>
-            </div>
+              </FieldLabel>
+              <InputGroup>
+                <InputGroupInput value={String(academy.instructor_count ?? 0)} readOnly />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupText>
+                    {academy.instructor_count === 1 ? "Member" : "Members"}
+                  </InputGroupText>
+                </InputGroupAddon>
+              </InputGroup>
+            </Field>
           </div>
 
-          {/* Academy ID (read-only, always) */}
-          <div className="flex flex-col gap-2">
-            <Label className="flex items-center gap-1.5 text-muted-foreground text-xs">
+          <Field>
+            <FieldLabel className="text-muted-foreground">
+              <IconBuildingArch className="size-3.5" />
               Academy ID
-            </Label>
-            <div className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground font-mono select-all">
-              {academy.id}
-              {!disabled && <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCopy}
-                disabled={copied}
-                className="h-6 px-1.5 gap-1"
-              >
-                {copied ? (
-                  <>
-                    <IconCheck className="size-3" />
-                    <span className="text-xs">Copied</span>
-                  </>
-                ) : (
-                  <>
-                    <IconCopy className="size-3" />
-                    <span className="text-xs">Copy</span>
-                  </>
-                )}
-              </Button>}
-            </div>
-          </div>
-        </div>
+            </FieldLabel>
+            <InputGroup>
+              <InputGroupInput value={academy.id} readOnly className="font-mono text-xs" />
+              {!disabled && (
+                <InputGroupAddon align="inline-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCopy}
+                    disabled={copied}
+                    className="h-7 gap-1 px-2"
+                  >
+                    {copied ? (
+                      <>
+                        <IconCheck className="size-3.5" />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <IconCopy className="size-3.5" />
+                        Copy
+                      </>
+                    )}
+                  </Button>
+                </InputGroupAddon>
+              )}
+            </InputGroup>
+            <FieldDescription>Created: {formatDateTime(academy.created_at)}</FieldDescription>
+          </Field>
+        </FieldGroup>
 
-        {/* Action Buttons */}
         {isEditing && (
-          <div className="flex items-center justify-end gap-2 pt-2 border-t mt-2">
+          <div className="mt-2 flex items-center justify-end gap-2 border-t pt-4">
             <Button
               variant="outline"
-              size="sm"
               onClick={handleCancel}
               disabled={isSaving}
             >
+              <IconX className="size-4" />
               Cancel
             </Button>
             <Button
-              size="sm"
               onClick={handleSave}
               disabled={!hasChanges || isSaving || !editName.trim()}
               className="gap-1.5"
@@ -302,6 +279,6 @@ export function AcademyDetails({
           </div>
         )}
       </CardContent>
-    </Card>
-  );
+    </div>
+  )
 }

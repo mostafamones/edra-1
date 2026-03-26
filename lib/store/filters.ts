@@ -8,13 +8,12 @@ import type { DateRange } from 'react-day-picker'
 
 export interface StudentFiltersState {
   levelFilter: string
-  branchFilter: string
+  groupFilter: string
   scheduleFilter: string
   showArchived: boolean
-  // Custom field filters - can be strings or date ranges
   customFieldFilters: Record<string, string | DateRange | undefined>
   setLevelFilter: (level: string) => void
-  setBranchFilter: (branch: string) => void
+  setGroupFilter: (group: string) => void
   setScheduleFilter: (schedule: string) => void
   setShowArchived: (show: boolean) => void
   setCustomFieldFilter: (fieldId: string, value: string | DateRange | undefined) => void
@@ -25,12 +24,12 @@ export const useStudentFilters = create<StudentFiltersState>()(
   persist(
     (set) => ({
       levelFilter: 'all',
-      branchFilter: 'all',
+      groupFilter: 'all',
       scheduleFilter: 'all',
       showArchived: false,
       customFieldFilters: {},
       setLevelFilter: (level) => set({ levelFilter: level }),
-      setBranchFilter: (branch) => set({ branchFilter: branch }),
+      setGroupFilter: (group) => set({ groupFilter: group }),
       setScheduleFilter: (schedule) => set({ scheduleFilter: schedule }),
       setShowArchived: (show) => set({ showArchived: show }),
       setCustomFieldFilter: (fieldId, value) =>
@@ -39,7 +38,7 @@ export const useStudentFilters = create<StudentFiltersState>()(
         })),
       resetFilters: () => set({
         levelFilter: 'all',
-        branchFilter: 'all',
+        groupFilter: 'all',
         scheduleFilter: 'all',
         showArchived: false,
         customFieldFilters: {},
@@ -58,13 +57,13 @@ export const useStudentFilters = create<StudentFiltersState>()(
 
 export interface SessionFiltersState {
   levelFilter: string
-  branchFilter: string
+  groupFilter: string
   scheduleFilter: string
   dateRange: DateRange | undefined
   searchQuery: string
   showArchived: boolean
   setLevelFilter: (level: string) => void
-  setBranchFilter: (branch: string) => void
+  setGroupFilter: (group: string) => void
   setScheduleFilter: (schedule: string) => void
   setDateRange: (dateRange: DateRange | undefined) => void
   setSearchQuery: (query: string) => void
@@ -76,20 +75,20 @@ export const useSessionFilters = create<SessionFiltersState>()(
   persist(
     (set) => ({
       levelFilter: 'all',
-      branchFilter: 'all',
+      groupFilter: 'all',
       scheduleFilter: 'all',
       dateRange: undefined,
       searchQuery: '',
       showArchived: false,
       setLevelFilter: (level) => set({ levelFilter: level }),
-      setBranchFilter: (branch) => set({ branchFilter: branch }),
+      setGroupFilter: (group) => set({ groupFilter: group }),
       setScheduleFilter: (schedule) => set({ scheduleFilter: schedule }),
       setDateRange: (dateRange) => set({ dateRange }),
       setSearchQuery: (query) => set({ searchQuery: query }),
       setShowArchived: (show) => set({ showArchived: show }),
       resetFilters: () => set({
         levelFilter: 'all',
-        branchFilter: 'all',
+        groupFilter: 'all',
         scheduleFilter: 'all',
         dateRange: undefined,
         searchQuery: '',

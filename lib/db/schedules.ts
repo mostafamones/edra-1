@@ -15,7 +15,7 @@ export async function getSchedules(academyId: string) {
     .select(`
       *,
       level:levels(*),
-      branch:branches(*),
+      group:groups(*),
       schedule_group:schedule_groups(*),
       time_slots:schedule_time_slots(*),
       schedule_enrollments(count)
@@ -33,7 +33,7 @@ export async function getSchedule(id: number) {
     .select(`
       *,
       level:levels(*),
-      branch:branches(*),
+      group:groups(*),
       schedule_group:schedule_groups(*),
       time_slots:schedule_time_slots(*)
     `)
@@ -202,7 +202,7 @@ export async function getScheduleGroups(academyId: string) {
     .select(`
       *,
       level:levels(*),
-      branch:branches(*),
+      group:groups(*),
       schedules:class_schedules(id, name)
     `)
     .eq('academy_id', academyId)

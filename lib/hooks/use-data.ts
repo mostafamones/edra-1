@@ -2,13 +2,13 @@
 
 import { useQuery, invalidateCache, type UseQueryOptions } from "./use-query";
 import type {
-  StudentWithLevelRating,
   Instructor,
   ScheduleWithRelations,
   SessionWithSchedule,
   StudentField,
+  StudentWithLevelRating,
   Level,
-  Branch,
+  Group,
   Academy,
 } from "@/lib/types";
 
@@ -353,19 +353,19 @@ export function invalidateLevels() {
 }
 
 // ============================================================================
-// useBranches
+// useGroups
 // ============================================================================
 
 /**
- * Fetch all branches for an academy.
+ * Fetch all groups for an academy.
  */
-export function useBranches(
+export function useGroups(
   academyId: string | null,
-  options: UseQueryOptions<Branch[]> = {}
+  options: UseQueryOptions<Group[]> = {}
 ) {
-  return useQuery<Branch[]>(
-    academyId ? `branches:${academyId}` : null,
-    () => fetchJSON<Branch[]>(`/api/branches?academyId=${academyId}`),
+  return useQuery<Group[]>(
+    academyId ? `groups:${academyId}` : null,
+    () => fetchJSON<Group[]>(`/api/groups?academyId=${academyId}`),
     {
       enabled: !!academyId,
       cacheTTL: 10 * 60 * 1000,
@@ -375,9 +375,9 @@ export function useBranches(
   );
 }
 
-/** Invalidate branches cache. */
-export function invalidateBranches() {
-  invalidateCache("branches:");
+/** Invalidate groups cache. */
+export function invalidateGroups() {
+  invalidateCache("groups:");
 }
 
 // ============================================================================

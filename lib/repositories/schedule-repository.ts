@@ -29,7 +29,7 @@ const LIST_SELECT = `
   branch:branches(*),
   schedule_group:schedule_groups(*),
   time_slots:schedule_time_slots(*),
-  student_schedules(count)
+  schedule_enrollments(count)
 `;
 
 const DETAIL_SELECT = `
@@ -224,10 +224,10 @@ export const ScheduleRepository = {
   /**
    * Enroll a student in a schedule.
    */
-  async enrollStudent(enrollment: StudentScheduleInsert): Promise<void> {
+  async enrollStudent(enrollment: ScheduleEnrollmentInsert): Promise<void> {
     const supabase = await createClient();
     const { error } = await supabase
-      .from("student_schedules")
+      .from("schedule_enrollments")
       .insert(enrollment);
     if (error) throw error;
   },
@@ -241,7 +241,7 @@ export const ScheduleRepository = {
   ): Promise<void> {
     const supabase = await createClient();
     const { error } = await supabase
-      .from("student_schedules")
+      .from("schedule_enrollments")
       .delete()
       .eq("student_id", studentId)
       .eq("schedule_id", scheduleId);
@@ -254,7 +254,7 @@ export const ScheduleRepository = {
   async getStudentSchedules(studentId: number): Promise<Schedule[]> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from("student_schedules")
+      .from("schedule_enrollments")
       .select(
         `schedule:class_schedules(*, time_slots:schedule_time_slots(*))`
       )
@@ -270,7 +270,7 @@ export const ScheduleRepository = {
   async getScheduleStudents(scheduleId: number) {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from("student_schedules")
+      .from("schedule_enrollments")
       .select(`student:students(*)`)
       .eq("schedule_id", scheduleId);
 

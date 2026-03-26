@@ -1,49 +1,45 @@
 import { getServiceSupabase } from '../supabase';
-import { Student, StudentInsert, StudentUpdate, StudentWithLevel } from '../types';
+import { Student, StudentInsert, StudentUpdate, StudentWithLevelRating } from '../types';
+import { saveStudentFieldValues } from './fields';
 
 const supabase: any = getServiceSupabase();
+
+const LIST_SELECT = `
+  *,
+  level:levels(*),
+  group:groups(*),
+  schedule_enrollments(schedule:class_schedules(*)),
+  student_field_values(*)
+`;
+
+const DETAIL_SELECT = `
+  *,
+  level:levels(*),
+  group:groups(*),
+  schedule_enrollments(schedule:class_schedules(*)),
+  student_field_values(*)
+`;
 
 export async function getStudents(academyId: string) {
   const { data, error } = await supabase
     .from('students')
-    .select(`
-      *,
-      level:levels(*),
-      group:groups(*),
-      schedule_enrollments(
-        schedule:class_schedules(*)
-      ),
-      student_field_values(*),
-      enrollments(
-        course:courses(*)
-      )
-    `)
+    .select(LIST_SELECT)
     .eq('academy_id', academyId)
     .order('full_name');
 
   if (error) throw error;
-  return data as StudentWithLevel[];
+  return data as StudentWithLevelRating[];
 }
 
 export async function getStudent(id: number) {
   const { data, error } = await supabase
     .from('students')
-    .select(`
-      *,
-      level:levels(*),
-      group:groups(*),
-      schedule_enrollments(
-        schedule:class_schedules(*)
-      ),
-      enrollments(
-        course:courses(*)
-      )
-    `)
+    .select(DETAIL_SELECT)
     .eq('id', id)
     .single();
 
   if (error) throw error;
-  return data as StudentWithLevel;
+  return data as StudentWithLevelRating;
 }
 
 export async function createStudent(student: StudentInsert) {
@@ -140,6 +136,4 @@ export async function createStudentsBulk(students: StudentWithFields[]) {
   return insertedStudents;
 }
 
-// Re-export saveStudentFieldValues for use in bulk import
-import { saveStudentFieldValues } from './fields';
 export { saveStudentFieldValues };
