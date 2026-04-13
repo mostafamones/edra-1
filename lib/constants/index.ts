@@ -75,12 +75,13 @@ export const DASHBOARD_ROUTES = {
 } as const;
 
 export const SETTINGS_ROUTES = {
-  ACADEMY: "/settings/academy",
-  STRUCTURE: "/settings/structure",
-  FIELDS: "/settings/fields",
-  INSTRUCTORS: "/settings/instructors",
   ACCOUNT: "/settings/account",
   NOTIFICATIONS: "/settings/notifications",
+  ACADEMY: "/settings/academy",
+  ACADEMY_STRUCTURE: "/settings/academy/structure",
+  ACADEMY_FORM: "/settings/academy/form",
+  TEAM: "/settings/team",
+  INTEGRATIONS: "/settings/integrations",
 } as const;
 
 // ============================================================================
@@ -420,6 +421,38 @@ export const formatFullName = (firstName?: string, lastName?: string): string =>
 };
 
 function capitalize(str?: string): string {
-  if (!str) return "";
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  if (!str) return ""
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
 }
+
+// ============================================================================
+// LEVEL COLORS
+// ============================================================================
+
+export const LEVEL_COLOR_PRESETS = [
+  { id: "rose", swatchClass: "bg-rose-500" },
+  { id: "orange", swatchClass: "bg-orange-500" },
+  { id: "amber", swatchClass: "bg-amber-500" },
+  { id: "lime", swatchClass: "bg-lime-500" },
+  { id: "emerald", swatchClass: "bg-emerald-500" },
+  { id: "sky", swatchClass: "bg-sky-500" },
+  { id: "blue", swatchClass: "bg-blue-500" },
+  { id: "violet", swatchClass: "bg-violet-500" },
+  { id: "fuchsia", swatchClass: "bg-fuchsia-500" },
+] as const
+
+export const LEVEL_COLOR_BORDER_CLASS = [
+  { id: "rose", borderClass: "border-l-rose-500" },
+  { id: "orange", borderClass: "border-l-orange-500" },
+  { id: "amber", borderClass: "border-l-amber-500" },
+  { id: "lime", borderClass: "border-l-lime-500" },
+  { id: "emerald", borderClass: "border-l-emerald-500" },
+  { id: "sky", borderClass: "border-l-sky-500" },
+  { id: "blue", borderClass: "border-l-blue-500" },
+  { id: "violet", borderClass: "border-l-violet-500" },
+  { id: "fuchsia", borderClass: "border-l-fuchsia-500" },
+] as const
+
+export const DEFAULT_LEVEL_COLOR_ID = LEVEL_COLOR_PRESETS[5].id
+export const MAX_EXPANDED_LEVELS = 2
+

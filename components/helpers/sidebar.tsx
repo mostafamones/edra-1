@@ -108,12 +108,12 @@ export const UserDropdown = {
   items: [
     {
       title: "Account",
-      url: "/settings?tab=account",
+      url: "/settings/account",
       icon: IconUserCircle
     },
     {
       title: "Notifications",
-      url: "/settings?tab=notifications",
+      url: "/settings/notifications",
       icon: IconNotification
     },
   ],

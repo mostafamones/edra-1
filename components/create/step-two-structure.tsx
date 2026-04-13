@@ -10,10 +10,12 @@ import {
 import {
   DEFAULT_LEVEL_COLOR_ID,
   StructureEditorRows,
+  StructureAddLevelButton,
+  StructureAddLevelSection,
   type StructureLevel,
-} from "@/components/shared/academy-structure/rows"
-import { MAX_EXPANDED_LEVELS } from "@/components/shared/academy-structure/constants"
-import { expandLevelWithCap } from "@/components/shared/academy-structure/utils"
+} from "@/components/shared/academy/level-rows"
+import { MAX_EXPANDED_LEVELS } from "@/lib/constants"
+import { expandLevelWithCap } from "@/components/helpers/academy-utils"
 
 interface Group {
   id: string
@@ -175,11 +177,11 @@ export function StepTwoStructure({
     const newLevels = levels.map((l) =>
       l.id === levelId
         ? {
-            ...l,
-            groups: l.groups.map((g) =>
-              g.id === groupId ? { ...g, name: editingGroupName.trim() } : g
-            ),
-          }
+          ...l,
+          groups: l.groups.map((g) =>
+            g.id === groupId ? { ...g, name: editingGroupName.trim() } : g
+          ),
+        }
         : l
     )
     updateLevels(newLevels)
@@ -189,13 +191,52 @@ export function StepTwoStructure({
   return (
     <div className="flex flex-col">
       <CardHeader className="text-left mb-4">
-        <CardTitle className="text-2xl font-semibold">Academy Structure</CardTitle>
-        <CardDescription className="text-sm -mt-1">
-          Specify your levels and group names!
-        </CardDescription>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <CardTitle className="text-2xl font-semibold">Academy Structure</CardTitle>
+            <CardDescription className="text-sm -mt-1">
+              Specify your levels and group names!
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <StructureAddLevelButton
+              showAddLevel={false}
+              addingLevelName={addingLevelName}
+              addingLevelColor={addingLevelColor}
+              disableAddLevelSubmit={!addingLevelName.trim()}
+              onAddingLevelNameChange={setAddingLevelName}
+              onAddingLevelColorChange={setAddingLevelColor}
+              onOpenAddLevel={() => {
+                setShowAddLevel(true)
+                setAddingLevelName("")
+                setAddingLevelColor(DEFAULT_LEVEL_COLOR_ID)
+              }}
+              onCloseAddLevel={() => setShowAddLevel(false)}
+              onAddLevel={handleAddLevel}
+            />
+          </div>
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-2 h-full flex flex-col">
+        {showAddLevel && (
+          <StructureAddLevelSection
+            showAddLevel
+            canShowAddLevelCta={false}
+            addingLevelName={addingLevelName}
+            addingLevelColor={addingLevelColor}
+            disableAddLevelSubmit={!addingLevelName.trim()}
+            onAddingLevelNameChange={setAddingLevelName}
+            onAddingLevelColorChange={setAddingLevelColor}
+            onOpenAddLevel={() => {
+              setShowAddLevel(true)
+              setAddingLevelName("")
+              setAddingLevelColor(DEFAULT_LEVEL_COLOR_ID)
+            }}
+            onCloseAddLevel={() => setShowAddLevel(false)}
+            onAddLevel={handleAddLevel}
+          />
+        )}
         <StructureEditorRows
           levels={levels as StructureLevel<string>[]}
           expandedLevels={expandedLevels}
@@ -209,6 +250,8 @@ export function StepTwoStructure({
           editingGroupName={editingGroupName}
           addingGroupToLevel={addingGroupToLevel}
           addingGroupName={addingGroupName}
+          canShowAddLevelCta={false}
+          hideAddLevelSection
           disableAddLevelSubmit={!addingLevelName.trim()}
           isLevelUpdateDisabled={(level) =>
             !editingLevelName.trim() ||

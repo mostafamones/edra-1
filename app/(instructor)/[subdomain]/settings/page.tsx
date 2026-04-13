@@ -1,19 +1,29 @@
-import { SiteHeader } from "@/components/site-header"
-import { SettingsWrapper } from "@/components/settings/settings"
+import { redirect } from "next/navigation"
+
+const tabToSlug: Record<string, string> = {
+  account: "account",
+  notifications: "notifications",
+  academy: "academy",
+  team: "team",
+  integrations: "integrations",
+}
 
 export default async function SettingsPage({
-  searchParams
+  params,
+  searchParams,
 }: {
+  params: Promise<{ subdomain: string }>
   searchParams: Promise<{ tab?: string }>
 }) {
+  const { subdomain } = await params
   const { tab } = await searchParams
 
-  return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden">
-      <SiteHeader title="Settings" />
-      <main className="flex-1 overflow-y-auto px-4 pb-4 lg:px-6 lg:pb-6">
-        <SettingsWrapper defaultValue={tab} />
-      </main>
-    </div>
-  )
+  const base = `/${subdomain}/settings`
+
+  if (tab) {
+    const slug = tabToSlug[tab.toLowerCase()]
+    if (slug) redirect(`${base}/${slug}`)
+  }
+
+  redirect(`${base}/account`)
 }

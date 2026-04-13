@@ -35,7 +35,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { cn } from "@/lib/utils"
-import { swatchClassForColorId } from "../shared/academy-structure/utils"
+import { swatchClassForColorId } from "@/components/helpers/academy-utils"
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -77,23 +77,23 @@ function formatDay(day: 0 | 1 | 2 | 3 | 4 | 5 | 6) {
 
 function buildStudentFormSchema(fields: StudentField[]) {
   return baseStudentFormSchema.superRefine((data, ctx) => {
-      for (const field of fields.filter((f) => f.is_required)) {
-        if (field.field_type === "boolean") continue
-        const v = data.fields?.[String(field.id)]
-        const empty =
-          v === "" ||
-          v === null ||
-          v === undefined ||
-          (typeof v === "number" && Number.isNaN(v))
-        if (empty) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `${field.name} is required`,
-            path: ["fields", String(field.id)],
-          })
-        }
+    for (const field of fields.filter((f) => f.is_required)) {
+      if (field.field_type === "boolean") continue
+      const v = data.fields?.[String(field.id)]
+      const empty =
+        v === "" ||
+        v === null ||
+        v === undefined ||
+        (typeof v === "number" && Number.isNaN(v))
+      if (empty) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `${field.name} is required`,
+          path: ["fields", String(field.id)],
+        })
       }
-    })
+    }
+  })
 }
 
 function buildDefaultValues(
@@ -354,8 +354,8 @@ const StudentFormFields = memo(function StudentFormFields({
                     name={formField.name}
                     value={
                       formField.value instanceof Date ||
-                      typeof formField.value === "string" ||
-                      formField.value == null
+                        typeof formField.value === "string" ||
+                        formField.value == null
                         ? formField.value
                         : undefined
                     }
@@ -577,11 +577,10 @@ const StudentFormFields = memo(function StudentFormFields({
                             <label
                               key={schedule.id}
                               htmlFor={`schedule-${schedule.id}`}
-                              className={`flex items-center gap-3 w-full p-3 rounded-lg border text-left text-sm transition-colors cursor-pointer ${
-                                isEnrolled
+                              className={`flex items-center gap-3 w-full p-3 rounded-lg border text-left text-sm transition-colors cursor-pointer ${isEnrolled
                                   ? "border-primary/40 bg-primary/5"
                                   : "border-input hover:bg-muted/30"
-                              }`}
+                                }`}
                             >
                               <RadioGroupItem
                                 value={schedule.id.toString()}
@@ -589,9 +588,8 @@ const StudentFormFields = memo(function StudentFormFields({
                               />
                               <div className="flex-1">
                                 <p
-                                  className={`font-medium truncate ${
-                                    isEnrolled ? "text-primary" : ""
-                                  }`}
+                                  className={`font-medium truncate ${isEnrolled ? "text-primary" : ""
+                                    }`}
                                 >
                                   {schedule.name}
                                 </p>

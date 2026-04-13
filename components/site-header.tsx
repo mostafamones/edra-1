@@ -95,7 +95,7 @@ export function SiteHeader({
             "flex items-center p-1 bg-card rounded-xl drop-shadow-md",
             !tabs && "ml-auto"
           )}>
-            {variant === 'default' && !actions && <ModeToggle variant="button" />}
+            {/* ModeToggle hidden – dark mode forced globally */}
             {actions}
           </div>
         </div>

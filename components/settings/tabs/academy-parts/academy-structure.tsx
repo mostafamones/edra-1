@@ -1,10 +1,10 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { IconEye } from "@tabler/icons-react"
+import { IconCheck, IconEye, IconHierarchy2 } from "@tabler/icons-react"
 import {
   CardContent,
   CardHeader,
@@ -28,9 +28,12 @@ import {
 import {
   DEFAULT_LEVEL_COLOR_ID,
   StructureEditorRows,
+  StructureAddLevelButton,
+  StructureAddLevelSection,
   type StructureLevel,
-} from "@/components/shared/academy-structure/rows"
-import { expandLevelWithCap } from "@/components/shared/academy-structure/utils"
+} from "@/components/shared/academy/level-rows"
+import { expandLevelWithCap } from "@/components/helpers/academy-utils"
+import AcademySkeleton from "@/components/shared/academy/skeleton"
 
 type GroupShape = Pick<Group, "id" | "name">
 type LevelShape = Pick<Level, "id" | "name" | "color"> & { groups: GroupShape[] }
@@ -39,9 +42,11 @@ type LevelShape = Pick<Level, "id" | "name" | "color"> & { groups: GroupShape[] 
 export function AcademyStructure({
   disabled,
   academyId,
+  title
 }: {
   disabled?: boolean
   academyId?: string
+  title?: React.ReactNode
 }) {
   const [expandedLevels, setExpandedLevels] = useState<Set<number>>(new Set())
 
@@ -63,6 +68,11 @@ export function AcademyStructure({
     description: string
     proceed: () => void
   } | null>(null)
+
+  // ── Local reorder state (pending, not yet saved) ─────────────────────────
+  const [pendingOrder, setPendingOrder] = useState<number[] | null>(null)
+  const [savingOrder, setSavingOrder] = useState(false)
+
   const {
     data: levelsData,
     loading: levelsLoading,
@@ -80,7 +90,18 @@ export function AcademyStructure({
     const resolvedLevels = levelsData ?? []
     const resolvedGroups = groupsData ?? []
 
-    return resolvedLevels.map((level) => ({
+    // Apply pending reorder if the user has dragged but not saved yet
+    let orderedLevels = resolvedLevels
+    if (pendingOrder) {
+      const map = new Map(resolvedLevels.map((l) => [l.id, l]))
+      const reordered = pendingOrder.map((id) => map.get(id)).filter(Boolean) as typeof resolvedLevels
+      // Append any new levels that aren't in pendingOrder yet
+      const inOrder = new Set(pendingOrder)
+      const extras = resolvedLevels.filter((l) => !inOrder.has(l.id))
+      orderedLevels = [...reordered, ...extras]
+    }
+
+    return orderedLevels.map((level) => ({
       id: level.id,
       name: level.name,
       color: level.color,
@@ -88,7 +109,7 @@ export function AcademyStructure({
         .filter((g) => g.level_id === level.id)
         .map((g) => ({ id: g.id, name: g.name })),
     }))
-  }, [levelsData, groupsData])
+  }, [levelsData, groupsData, pendingOrder])
 
   const loading = levelsLoading || groupsLoading
   const loadError = levelsError || groupsError
@@ -109,6 +130,8 @@ export function AcademyStructure({
     if (!academyId || !addingLevelName.trim()) return
     setSavingId("add-level")
     try {
+      // Compute next sort_order from the current local order
+      const nextSortOrder = levels.length + 1
       const res = await fetch("/api/levels", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -116,6 +139,7 @@ export function AcademyStructure({
           academy_id: academyId,
           name: addingLevelName.trim(),
           color: addingLevelColor,
+          sort_order: nextSortOrder,
         }),
       })
       if (!res.ok) throw new Error("Failed to create level")
@@ -163,6 +187,8 @@ export function AcademyStructure({
         next.delete(levelId)
         return next
       })
+      // Remove deleted level from pending order if present
+      setPendingOrder((prev) => prev ? prev.filter((id) => id !== levelId) : null)
     } catch (err) {
       console.error("Error deleting level:", err)
       toast.error("Could not delete level.")
@@ -232,21 +258,33 @@ export function AcademyStructure({
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex flex-col">
-        <CardHeader className="text-left mb-4">
-          <Skeleton className="h-8 w-52" />
-          <Skeleton className="h-4 w-72" />
-        </CardHeader>
-        <CardContent className="space-y-3 h-full flex flex-col">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="rounded-lg border border-input bg-muted/20 h-15" />
-          ))}
-        </CardContent>
-      </div>
-    )
+  // ── Drag-and-drop reorder ─────────────────────────────────────────────────
+  const handleReorderLevels = useCallback((orderedIds: number[]) => {
+    setPendingOrder(orderedIds)
+  }, [])
+
+  const handleSaveOrder = async () => {
+    if (!pendingOrder) return
+    setSavingOrder(true)
+    try {
+      const res = await fetch("/api/levels/reorder", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderedIds: pendingOrder }),
+      })
+      if (!res.ok) throw new Error("Failed to save order")
+      await refreshLevels()
+      setPendingOrder(null)
+      toast.success("Level order saved.")
+    } catch (err) {
+      console.error("Error saving level order:", err)
+      toast.error("Could not save order.")
+    } finally {
+      setSavingOrder(false)
+    }
   }
+
+  if (loading) return <AcademySkeleton />
 
   if (loadError) {
     return (
@@ -262,25 +300,50 @@ export function AcademyStructure({
   }
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-4">
       <CardHeader className="text-left">
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <CardTitle className="text-2xl font-semibold">Academy Structure</CardTitle>
-            <CardDescription className="text-sm -mt-1">
-              Specify your levels and group names!
-            </CardDescription>
+          {title}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Save Order button – only shown when there's a pending reorder */}
+            {!disabled && pendingOrder && (
+              <Button
+                size="sm"
+                className="gap-1.5 h-8 px-3 text-sm"
+                onClick={handleSaveOrder}
+                disabled={savingOrder}
+              >
+                {savingOrder ? "Saving…" : "Save"}
+              </Button>
+            )}
+            {!disabled && (
+              <StructureAddLevelButton
+                showAddLevel={false}
+                addingLevelName={addingLevelName}
+                addingLevelColor={addingLevelColor}
+                disableAddLevelSubmit={!addingLevelName.trim() || savingId === "add-level"}
+                onAddingLevelNameChange={setAddingLevelName}
+                onAddingLevelColorChange={setAddingLevelColor}
+                onOpenAddLevel={() => {
+                  setShowAddLevel(true)
+                  setAddingLevelName("")
+                  setAddingLevelColor(DEFAULT_LEVEL_COLOR_ID)
+                }}
+                onCloseAddLevel={() => setShowAddLevel(false)}
+                onAddLevel={handleAddLevel}
+              />
+            )}
+            {disabled && (
+              <Badge variant="outline" className="text-xs gap-1.5 h-9 px-3">
+                <IconEye className="h-4 w-4" />
+                View Only
+              </Badge>
+            )}
           </div>
-          {disabled && (
-            <Badge variant="outline" className="text-xs gap-1.5 h-9 px-3">
-              <IconEye className="h-4 w-4" />
-              View Only
-            </Badge>
-          )}
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-2 h-full flex flex-col">
+      <CardContent className="space-y-2 h-full flex flex-col text-left">
         <StructureEditorRows
           levels={levels as StructureLevel<number>[]}
           expandedLevels={expandedLevels}
@@ -295,7 +358,10 @@ export function AcademyStructure({
           addingGroupToLevel={addingGroupToLevel}
           addingGroupName={addingGroupName}
           disabled={disabled}
-          canShowAddLevelCta={!disabled}
+          canShowAddLevelCta={false}
+          hideAddLevelSection
+          showColorDot={false}
+          kebabMenu
           disableAddLevelSubmit={!addingLevelName.trim() || savingId === "add-level"}
           isLevelDeleteDisabled={(levelId) => savingId === `delete-level-${levelId}`}
           isLevelUpdateDisabled={(level) =>
@@ -313,6 +379,7 @@ export function AcademyStructure({
           isGroupAddDisabled={(levelId) =>
             !addingGroupName.trim() || savingId === `add-group-${levelId}`
           }
+          onReorderLevels={!disabled ? handleReorderLevels : undefined}
           onOpenAddLevel={() => {
             setShowAddLevel(true)
             setAddingLevelName("")
@@ -366,6 +433,25 @@ export function AcademyStructure({
             })
           }}
         />
+        {showAddLevel && (
+          <StructureAddLevelSection
+            showAddLevel
+            canShowAddLevelCta={false}
+            addingLevelName={addingLevelName}
+            addingLevelColor={addingLevelColor}
+            disableAddLevelSubmit={!addingLevelName.trim() || savingId === "add-level"}
+            onAddingLevelNameChange={setAddingLevelName}
+            onAddingLevelColorChange={setAddingLevelColor}
+            onOpenAddLevel={() => {
+              setShowAddLevel(true)
+              setAddingLevelName("")
+              setAddingLevelColor(DEFAULT_LEVEL_COLOR_ID)
+            }}
+            onCloseAddLevel={() => setShowAddLevel(false)}
+            onAddLevel={handleAddLevel}
+          />
+        )}
+
       </CardContent>
 
       <AlertDialog

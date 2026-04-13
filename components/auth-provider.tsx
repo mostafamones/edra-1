@@ -5,7 +5,7 @@ import { useRouter, usePathname, useParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { User, Session } from "@supabase/supabase-js"
 import { IconSchool } from "@tabler/icons-react"
-import { Progress } from "./ui/progress"
+import { Progress } from "@/components/ui/progress"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAcademy, type AcademyWithMeta } from "@/lib/hooks/use-data"
 
