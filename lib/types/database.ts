@@ -17,21 +17,30 @@ export type Database = {
       academies: {
         Row: {
           created_at: string | null
+          icon: string
           id: string
           name: string
           owner_id: string
+          slug: string
+          subject: string | null
         }
         Insert: {
           created_at?: string | null
+          icon?: string
           id?: string
           name: string
           owner_id: string
+          slug: string
+          subject?: string | null
         }
         Update: {
           created_at?: string | null
+          icon?: string
           id?: string
           name?: string
           owner_id?: string
+          slug?: string
+          subject?: string | null
         }
         Relationships: [
           {

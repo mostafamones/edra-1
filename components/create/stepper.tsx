@@ -28,12 +28,14 @@ import { StepFourFinalize } from "./step-four-finalize"
 
 const DRAFT_STORAGE_KEY = "edra_academy_draft_v1"
 
-const DEFAULT_STRUCTURE_LEVELS: Array<{
+type AcademyDraftLevel = {
   id: string
   name: string
-  color?: string
+  color?: string | null
   groups: Array<{ id: string; name: string }>
-}> = [
+}
+
+const DEFAULT_STRUCTURE_LEVELS: AcademyDraftLevel[] = [
   { id: "level-ref-1", name: "Level 1", color: "sky", groups: [] },
   {
     id: "level-ref-2",
@@ -67,10 +69,10 @@ const CREATION_STEPS = [
 
 type AcademyData = {
   name: string
-  subdomain: string
+  slug: string
   icon: string
   subject: string
-  levels: typeof DEFAULT_STRUCTURE_LEVELS
+  levels: AcademyDraftLevel[]
   fields: Array<{
     id: string
     name: string
@@ -82,7 +84,7 @@ type AcademyData = {
 
 const DEFAULT_ACADEMY_DATA: AcademyData = {
   name: "",
-  subdomain: "",
+  slug: "",
   icon: "school",
   subject: "",
   levels: DEFAULT_STRUCTURE_LEVELS,
@@ -322,7 +324,7 @@ export function CreateAcademyStepper() {
       // Brief "done" display, then seamless navigation with cross-page fade
       await new Promise((r) => setTimeout(r, 900))
 
-      const destination = json.redirectTo || (json.subdomain ? `/${json.subdomain}/dashboard` : "/dashboard")
+      const destination = json.redirectTo || (json.slug ? `/${json.slug}/dashboard` : "/dashboard")
       try { localStorage.setItem("edra_last_academy_id", json.id) } catch { /* ignore */ }
       
       if (typeof document !== "undefined" && "startViewTransition" in document) {
@@ -475,7 +477,7 @@ export function CreateAcademyStepper() {
                 >
                   {currentStep === 1 && (
                     <StepOneBasics
-                      initialData={{ name: academyData.name, subdomain: academyData.subdomain, icon: academyData.icon, subject: academyData.subject }}
+                      initialData={{ name: academyData.name, slug: academyData.slug, icon: academyData.icon, subject: academyData.subject }}
                       onUpdate={(data) => setAcademyData({ ...academyData, ...data })}
                     />
                   )}

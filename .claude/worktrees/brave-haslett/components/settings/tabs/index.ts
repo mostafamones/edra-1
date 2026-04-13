@@ -1,5 +1,0 @@
-export * from "./academy"
-export * from "./account"
-export * from "./integeration"
-export * from "./notifications"
-export * from "./team"

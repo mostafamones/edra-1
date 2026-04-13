@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { time_slots, ...scheduleData } = body;
 
-    if (!scheduleData?.name || !scheduleData?.course_id || !scheduleData?.level_id) {
+    if (!scheduleData?.name || !scheduleData?.academy_id) {
       return NextResponse.json(
-        { error: "Name, course ID and level ID are required" },
+        { error: "Name and academy ID are required" },
         { status: 400 }
       );
     }

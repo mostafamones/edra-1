@@ -34,7 +34,7 @@ export async function GET() {
     // 4. Fetch all active memberships with academy details
     const { data: memberships, error: memError } = await (supabase as any)
       .from("academy_memberships")
-      .select("role, academy:academies(id, name, subdomain, icon)")
+      .select("role, academy:academies(id, name, slug, icon)")
       .eq("instructor_id", instructor.id)
       .eq("is_active", true);
 
@@ -48,7 +48,7 @@ export async function GET() {
       .map((m: any) => ({
         id: m.academy.id,
         name: m.academy.name,
-        subdomain: m.academy.subdomain,
+        slug: m.academy.slug,
         icon: m.academy.icon ?? null,
         role: m.role,
       }));

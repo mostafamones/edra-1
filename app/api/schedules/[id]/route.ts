@@ -1,4 +1,4 @@
-import { getSchedule, updateSchedule, deleteSchedule, replaceTimeSlots } from "@/lib";
+import { getSchedule, updateSchedule, deleteSchedule, replaceTimeSlots } from "@/lib/db/schedules";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(

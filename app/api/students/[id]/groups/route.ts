@@ -1,4 +1,8 @@
-import { getStudentSchedules, enrollStudentInSchedule, unenrollStudentFromSchedule } from "@/lib";
+import {
+  getStudentSchedules,
+  enrollStudentInSchedule,
+  unenrollStudentFromSchedule,
+} from "@/lib/db/schedules";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(

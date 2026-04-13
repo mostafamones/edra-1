@@ -1,7 +1,8 @@
 "use client"
 
 import { forwardRef, type ComponentType } from "react"
-import { Button, type ButtonProps } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
+import type { VariantProps } from "class-variance-authority"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -11,7 +12,7 @@ export interface BulkAction {
   label: string
   icon?: ComponentType<{ className?: string }>
   onClick: () => void
-  variant?: ButtonProps["variant"]
+  variant?: VariantProps<typeof buttonVariants>["variant"]
   disabled?: boolean
   loading?: boolean
 }

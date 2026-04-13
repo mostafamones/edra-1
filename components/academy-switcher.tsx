@@ -46,8 +46,8 @@ export function AcademySwitcher() {
     setActiveAcademy(academy)
   }
 
-  const subtitle = activeAcademy?.subdomain
-    ? `${activeAcademy.subdomain}@edra.academy`
+  const subtitle = activeAcademy?.slug
+    ? `${activeAcademy.slug}@edra.academy`
     : academyDetails?.instructor_count != null
       ? `${academyDetails.instructor_count} instructor${academyDetails.instructor_count !== 1 ? "s" : ""}`
       : "edra.academy"

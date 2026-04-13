@@ -54,24 +54,24 @@ export async function getCurrentUserAcademy(): Promise<string | null> {
 }
 
 /**
- * Resolve academy ID for the current URL subdomain.
+ * Resolve academy ID for the current URL `[slug]`.
  *
  * This avoids relying on `user_metadata.academy_id`, which can represent a
  * different (previously active) academy when the user belongs to multiple.
  */
-export async function getCurrentUserAcademyForSubdomain(
-  subdomain: string | null | undefined
+export async function getCurrentUserAcademyForSlug(
+  slug: string | null | undefined
 ): Promise<string | null> {
-  if (!subdomain) return null;
+  if (!slug) return null;
 
   try {
     const res = await fetch("/api/academy/me");
     if (!res.ok) return null;
     const body = (await res.json()) as {
-      academies?: { id: string; subdomain: string }[];
+      academies?: { id: string; slug: string }[];
     };
 
-    const match = (body.academies ?? []).find((a) => a.subdomain === subdomain);
+    const match = (body.academies ?? []).find((a) => a.slug === slug);
     return match?.id ?? null;
   } catch {
     return null;

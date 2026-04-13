@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       name,
+      slug,
       subdomain,
       icon = "school",
       subject = "",
@@ -110,7 +111,9 @@ export async function POST(request: NextRequest) {
       fields = [],
     }: {
       name: string
-      subdomain: string
+      slug?: string
+      // Back-compat: older clients may still send `subdomain`
+      subdomain?: string
       icon?: string
       subject?: string
       levels: Array<{
@@ -133,8 +136,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Create the academy
-    // subdomain falls back to a slugified name if somehow empty
-    const resolvedSubdomain =
+    // slug falls back to a slugified name if somehow empty
+    const resolvedSlug =
+      slug?.trim() ||
       subdomain?.trim() ||
       name.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
 
@@ -142,7 +146,7 @@ export async function POST(request: NextRequest) {
       name: name.trim(),
       owner_id: user.id,
       // The DB has these columns but database.ts types are stale — cast around them
-      ...({ subdomain: resolvedSubdomain, icon, subject } as any),
+      ...({ slug: resolvedSlug, icon, subject } as any),
     } as any);
 
     const academyId = academy.id;
@@ -193,8 +197,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       id: academyId,
-      subdomain,
-      redirectTo: `/${subdomain}/dashboard`,
+      slug: resolvedSlug,
+      redirectTo: `/${resolvedSlug}/dashboard`,
     });
   } catch (error) {
     console.error("Error creating academy:", error);

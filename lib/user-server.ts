@@ -41,13 +41,13 @@ export async function getServerAcademyId(): Promise<string | null> {
 }
 
 /**
- * Resolve academy ID for a specific `[subdomain]` route on the server.
+ * Resolve academy ID for a specific `[slug]` route on the server.
  *
  * This ensures instructor pages fetch data for the academy in the URL,
  * not whichever academy happens to be in `user_metadata` / last-active context.
  */
-export async function getServerAcademyIdForSubdomain(
-  subdomain: string
+export async function getServerAcademyIdForSlug(
+  slug: string
 ): Promise<string | null> {
   try {
     const client = await createClient()
@@ -70,14 +70,15 @@ export async function getServerAcademyIdForSubdomain(
 
     const { data: memberships, error: memError } = await (supabase as any)
       .from("academy_memberships")
-      .select("academy:academies(id, subdomain)")
+      // academies use `slug` as the slug in the rest of the codebase
+      .select("academy:academies(id, slug)")
       .eq("instructor_id", instructor.id)
       .eq("is_active", true)
 
     if (memError) return null
 
     const match = (memberships ?? []).find(
-      (m: any) => m.academy?.subdomain === subdomain
+      (m: any) => m.academy?.slug === slug
     )
 
     return match?.academy?.id ?? null

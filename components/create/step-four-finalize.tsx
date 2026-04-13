@@ -38,7 +38,7 @@ interface Group {
 interface Level {
   id: string
   name: string
-  color?: string
+  color?: string | null
   groups: Group[]
 }
 
@@ -53,7 +53,7 @@ interface CustomField {
 interface StepFourFinalizeProps {
   academyData: {
     name: string
-    subdomain: string
+    slug: string
     icon: string
     subject: string
     levels: Level[]
@@ -75,7 +75,7 @@ const COLOR_SWATCH: Record<string, string> = {
   fuchsia: "bg-fuchsia-500",
 }
 
-function swatchClass(colorId?: string) {
+function swatchClass(colorId?: string | null) {
   return colorId ? (COLOR_SWATCH[colorId] ?? "bg-sky-500") : "bg-sky-500"
 }
 
@@ -161,8 +161,8 @@ export function StepFourFinalize({ academyData }: StepFourFinalizeProps) {
                 {academyData.name || <span className="text-muted-foreground italic">Unnamed Academy</span>}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                <span className="font-medium text-foreground">{academyData.subdomain || "—"}</span>
-                .edra.academy
+                edra.academy/
+                <span className="font-medium text-foreground">{academyData.slug || "—"}</span>
               </p>
             </div>
 
@@ -292,7 +292,7 @@ export function StepFourFinalize({ academyData }: StepFourFinalizeProps) {
         </div>
 
         {/* ── URL preview pill ── */}
-        {academyData.subdomain && (
+        {academyData.slug && (
           <>
             <div className="flex items-center gap-2 rounded-lg bg-muted/30 border border-input px-3 py-2.5 my-1">
               <IconLayoutGrid className="size-4 text-muted-foreground shrink-0" />
@@ -300,7 +300,7 @@ export function StepFourFinalize({ academyData }: StepFourFinalizeProps) {
                 <span className="text-muted-foreground">Your academy will be live at</span>
                 <IconChevronRight className="size-3.5 text-muted-foreground/50 shrink-0" />
                 <span className="font-medium text-primary truncate">
-                  {academyData.subdomain}.edra.academy
+                  {academyData.slug}.edra.academy
                 </span>
               </div>
             </div>

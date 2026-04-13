@@ -6,7 +6,7 @@ import type {
   ScheduleInsert,
   ScheduleUpdate,
   ScheduleTimeSlotInsert,
-  StudentScheduleInsert,
+  ScheduleEnrollmentInsert,
 } from "@/lib/types";
 import type { PaginationParams } from "@/lib/api/response";
 
@@ -26,7 +26,7 @@ export interface PaginatedResult<T> {
 const LIST_SELECT = `
   *,
   level:levels(*),
-  branch:branches(*),
+  group:groups(*),
   schedule_group:schedule_groups(*),
   time_slots:schedule_time_slots(*),
   schedule_enrollments(count)
@@ -35,7 +35,7 @@ const LIST_SELECT = `
 const DETAIL_SELECT = `
   *,
   level:levels(*),
-  branch:branches(*),
+  group:groups(*),
   schedule_group:schedule_groups(*),
   time_slots:schedule_time_slots(*)
 `;
@@ -288,7 +288,7 @@ export const ScheduleRepository = {
     const { data, error } = await supabase
       .from("schedule_groups")
       .select(
-        `*, level:levels(*), branch:branches(*), schedules:class_schedules(id, name)`
+        `*, level:levels(*), group:groups(*), schedules:class_schedules(id, name)`
       )
       .eq("academy_id", academyId)
       .order("created_at", { ascending: false });
@@ -304,7 +304,7 @@ export const ScheduleRepository = {
     academy_id: string;
     name: string;
     level_id?: number | null;
-    branch_id?: number | null;
+    group_id?: number | null;
     min_attendance?: number;
   }) {
     const supabase = await createClient();

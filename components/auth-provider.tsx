@@ -14,7 +14,7 @@ import { useAcademy, type AcademyWithMeta } from "@/lib/hooks/use-data"
 export type AcademyEntry = {
   id: string
   name: string
-  subdomain: string
+  slug: string
   icon: string | null
   role: string
 }
@@ -196,12 +196,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // ── Resolve active academy ─────────────────────────────────────────────
       // Order of preference: 
-      // 1. Path parameter [subdomain] (if we are in a sub-route)
+      // 1. Path parameter [slug] (if we are in a slug route)
       // 2. localStorage last-used
       // 3. First entry in list
       
-      const pathSubdomain = params?.subdomain as string | undefined
-      const fromUrl = entries.find(e => e.subdomain === pathSubdomain)
+      const pathSlug = params?.slug as string | undefined
+      const fromUrl = entries.find(e => e.slug === pathSlug)
       
       const fromLastUsed = (() => {
         try {
@@ -223,15 +223,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         const parts = pathname.split('/').filter(Boolean)
-        const currentPathSubdomain = parts[0]
+        const currentPathSlug = parts[0]
         
         // Rule 2: Accessing an academy they don't belong to?
         // If current path starts with a subdomain that doesn't match any of their entries.
-        const matchesAnyOfMine = entries.some(e => e.subdomain === currentPathSubdomain)
+        const matchesAnyOfMine = entries.some(e => e.slug === currentPathSlug)
         
         if (!matchesAnyOfMine && preferred) {
           // Protect them by redirecting to their own active dashboard
-          router.push(`/${preferred.subdomain}/dashboard`)
+          router.push(`/${preferred.slug}/dashboard`)
         }
       }
     } catch (err) {
@@ -240,7 +240,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAcademiesLoading(false)
       fetchLock.current = false
     }
-  }, [pathname, params?.subdomain, router])
+  }, [pathname, params?.slug, router])
 
   // Auth state
   useEffect(() => {
@@ -288,7 +288,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setActiveAcademy = useCallback((academy: AcademyEntry) => {
     setActiveAcademyState(academy)
     try { localStorage.setItem(LAST_ACADEMY_KEY, academy.id) } catch { /* ignore */ }
-    router.push(`/${academy.subdomain}/dashboard`)
+    router.push(`/${academy.slug}/dashboard`)
   }, [router])
 
   return (

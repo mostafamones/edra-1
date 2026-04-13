@@ -1,4 +1,4 @@
-import { getStudent, updateStudent, deleteStudent } from "@/lib";
+import { getStudent, updateStudent, deleteStudent } from "@/lib/db/students";
 import { saveStudentFieldValues } from "@/lib/db/fields";
 import { NextRequest, NextResponse } from "next/server";
 

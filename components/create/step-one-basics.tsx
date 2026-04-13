@@ -14,18 +14,18 @@ import { ACADEMY_ICONS, ACADEMY_SUBJECTS, GENERIC_ACADEMY_WORDS } from "@/lib/co
 interface StepOneBasicsProps {
   initialData: {
     name: string
-    subdomain: string
+    slug: string
     icon?: string
     subject?: string
   }
-  onUpdate: (data: { name: string; subdomain: string; icon?: string; subject?: string }) => void
+  onUpdate: (data: { name: string; slug: string; icon?: string; subject?: string }) => void
 }
 
 export function StepOneBasics({ initialData, onUpdate }: StepOneBasicsProps) {
   const [data, setData] = useState({ ...initialData, subject: initialData.subject || "" })
   const [selectedIconId, setSelectedIconId] = useState<string>(initialData.icon || 'school')
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
-  const [isSubdomainManual, setIsSubdomainManual] = useState(false)
+  const [isSlugManual, setIsSlugManual] = useState(false)
   const [isOtherSubject, setIsOtherSubject] = useState(!ACADEMY_SUBJECTS.includes(initialData.subject || "") && !!initialData.subject)
 
   const CurrentIcon = ACADEMY_ICONS.find(i => i.id === selectedIconId)?.icon || ACADEMY_ICONS[0].icon
@@ -35,16 +35,16 @@ export function StepOneBasics({ initialData, onUpdate }: StepOneBasicsProps) {
     const newData = { ...data, [name]: value }
 
     if (name === "name") {
-      // Auto-generate subdomain from name if user hasn't explicitly typed one yet
-      if (!isSubdomainManual) {
-        newData.subdomain = value.toLowerCase().replace(/\s+/g, "").replace(/[^a-z0-9]/g, "")
+      // Auto-generate slug from name if user hasn't explicitly typed one yet
+      if (!isSlugManual) {
+        newData.slug = value.toLowerCase().replace(/\s+/g, "").replace(/[^a-z0-9]/g, "")
       }
     }
 
-    if (name === "subdomain") {
-      setIsSubdomainManual(true)
-      // Sanitize subdomain: only lowercase letters, numbers, and hyphens
-      newData.subdomain = value.toLowerCase().replace(/[^a-z0-9-]/g, "")
+    if (name === "slug") {
+      setIsSlugManual(true)
+      // Sanitize slug: only lowercase letters, numbers, and hyphens
+      newData.slug = value.toLowerCase().replace(/[^a-z0-9-]/g, "")
     }
 
     setData(newData)
@@ -52,8 +52,8 @@ export function StepOneBasics({ initialData, onUpdate }: StepOneBasicsProps) {
   }
 
   const applySuggestion = (suggestion: string) => {
-    setIsSubdomainManual(true)
-    const newData = { ...data, subdomain: suggestion }
+    setIsSlugManual(true)
+    const newData = { ...data, slug: suggestion }
     setData(newData)
     onUpdate({ ...newData, icon: selectedIconId })
   }
@@ -208,21 +208,21 @@ export function StepOneBasics({ initialData, onUpdate }: StepOneBasicsProps) {
           <FieldSeparator className="-mb-3 mt-0" variant="card">Technicals</FieldSeparator>
 
           <Field>
-            <FieldLabel htmlFor="subdomain">Academy Link</FieldLabel>
+            <FieldLabel htmlFor="slug">Academy Link</FieldLabel>
             <InputGroup>
               <InputGroupInput
-                id="subdomain"
-                name="subdomain"
+                id="slug"
+                name="slug"
                 placeholder="acme"
-                value={data.subdomain}
+                value={data.slug}
                 onChange={handleChange}
                 className="text-lg"
                 maxLength={50}
               />
 
-              <InputGroupAddon align="inline-end">
+              <InputGroupAddon align="inline-start">
                 <InputGroupText>
-                  .edra.academy
+                  edra.academy/
                 </InputGroupText>
               </InputGroupAddon>
             </InputGroup>
@@ -231,7 +231,7 @@ export function StepOneBasics({ initialData, onUpdate }: StepOneBasicsProps) {
               <div className="flex flex-wrap gap-2 mt-2">
                 {getSuggestions().map((suggestion) => {
 
-                  if (suggestion === data.subdomain) return null
+                  if (suggestion === data.slug) return null
 
                   return (
                     <Badge
