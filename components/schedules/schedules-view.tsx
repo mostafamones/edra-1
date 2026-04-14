@@ -36,6 +36,14 @@ type ScheduleViewMode = "list" | "calendar"
 
 const STORAGE_KEY = "edra:schedules-view-mode"
 
+function normalizeDayOfWeek(value: number | null | undefined): number {
+  if (value === null || value === undefined) return -1
+  // Support legacy 1–7 storage (Mon=1..Sun=7) by mapping into 0–6 (Sun=0).
+  if (value >= 1 && value <= 7) return value % 7
+  // Assume already 0–6
+  return value
+}
+
 function getStoredViewMode(): ScheduleViewMode {
   if (typeof window === "undefined") return "list"
   try {
@@ -119,13 +127,19 @@ export function SchedulesView({ academyId }: SchedulesViewProps) {
     setSheetOpen(true)
   }, [])
 
-  const { recurringRows, oneOffRows, activeDays } = useMemo(() => {
+  const { recurringRows, oneOffRows, activeDays, unscheduledRows } = useMemo(() => {
     if (!schedules || schedules.length === 0) {
-      return { recurringRows: [] as ScheduleRow[], oneOffRows: [] as ScheduleRow[], activeDays: [] as { dayIndex: number; dayName: string; rows: ScheduleRow[] }[] }
+      return {
+        recurringRows: [] as ScheduleRow[],
+        oneOffRows: [] as ScheduleRow[],
+        activeDays: [] as { dayIndex: number; dayName: string; rows: ScheduleRow[] }[],
+        unscheduledRows: [] as ScheduleRow[],
+      }
     }
 
     const recurringRows: ScheduleRow[] = []
     const oneOffRows: ScheduleRow[] = []
+    const unscheduledRows: ScheduleRow[] = []
     const DAYS_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
     for (const schedule of schedules) {
@@ -153,7 +167,7 @@ export function SchedulesView({ academyId }: SchedulesViewProps) {
         }
       } else {
         if (slots.length === 0) {
-          recurringRows.push({
+          const row: ScheduleRow = {
             schedule,
             timeSlot: {
               id: 0,
@@ -165,10 +179,21 @@ export function SchedulesView({ academyId }: SchedulesViewProps) {
               instance_date: null,
               created_at: null,
             },
-          })
+          }
+          recurringRows.push(row)
+          unscheduledRows.push(row)
         } else {
           for (const slot of slots) {
-            recurringRows.push({ schedule, timeSlot: slot })
+            const normalizedDow = normalizeDayOfWeek(slot.day_of_week)
+            const row: ScheduleRow = {
+              schedule,
+              timeSlot: {
+                ...slot,
+                day_of_week: normalizedDow,
+              },
+            }
+            recurringRows.push(row)
+            if (normalizedDow === -1) unscheduledRows.push(row)
           }
         }
       }
@@ -178,13 +203,13 @@ export function SchedulesView({ academyId }: SchedulesViewProps) {
       dayIndex,
       dayName,
       rows: recurringRows
-        .filter((r) => r.timeSlot.day_of_week === dayIndex)
+        .filter((r) => normalizeDayOfWeek(r.timeSlot.day_of_week) === dayIndex)
         .sort((a, b) => (a.timeSlot.start_time || "").localeCompare(b.timeSlot.start_time || "")),
     }))
 
     const activeDays = schedulesByDay.filter((d) => d.rows.length > 0)
 
-    return { recurringRows, oneOffRows, activeDays }
+    return { recurringRows, oneOffRows, activeDays, unscheduledRows }
   }, [schedules])
 
   const { recurringSchedules, oneOffSchedules } = useMemo(() => {
@@ -352,6 +377,7 @@ export function SchedulesView({ academyId }: SchedulesViewProps) {
               {viewMode === "list" ? (
                 <ScheduleListView
                   activeDays={activeDays}
+                  unscheduledRows={unscheduledRows}
                   oneOffRows={oneOffRows}
                   onEdit={openEditSheet}
                   onDelete={setDeleteTarget}

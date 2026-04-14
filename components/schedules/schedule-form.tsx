@@ -11,7 +11,6 @@ import { Calendar } from "@/components/ui/calendar"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
@@ -254,308 +253,354 @@ export function ScheduleForm({
       }
 
       onSuccess?.()
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
-      toast.error(err?.message || (isEdit ? "Could not update schedule" : "Could not create schedule"))
+      const message = err instanceof Error ? err.message : null
+      toast.error(message || (isEdit ? "Could not update schedule" : "Could not create schedule"))
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <div className="w-full p-4 lg:p-6">
-      <div className="mx-auto w-full max-w-3xl rounded-xl border bg-card">
-        <ScrollArea className="max-h-[calc(100vh-11rem)]">
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="schedule-name">
-                Schedule Name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="schedule-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g. Morning Class A"
-                required
-              />
+    <div className="w-full flex justify-center">
+      <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-xl">
+        <div className="space-y-4">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase">Details</h3>
+          <div className="space-y-2">
+            <Label htmlFor="schedule-name">
+              Schedule Name <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="schedule-name"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g. Morning Class A"
+              required
+              className="h-10"
+            />
+          </div>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-4">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase">Type</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              className={`flex flex-col items-center gap-1 p-3 rounded-lg border text-sm transition-colors ${
+                formData.schedule_type === "recurring"
+                  ? "border-primary/40 bg-primary/5 text-primary"
+                  : "border-input hover:bg-muted/30"
+              }`}
+              onClick={() => setFormData({ ...formData, schedule_type: "recurring" })}
+            >
+              <span className="font-medium">Recurring</span>
+              <span className="text-[11px] text-muted-foreground">Repeats weekly</span>
+            </button>
+            <button
+              type="button"
+              className={`flex flex-col items-center gap-1 p-3 rounded-lg border text-sm transition-colors ${
+                formData.schedule_type === "one_off"
+                  ? "border-primary/40 bg-primary/5 text-primary"
+                  : "border-input hover:bg-muted/30"
+              }`}
+              onClick={() => setFormData({ ...formData, schedule_type: "one_off" })}
+            >
+              <span className="font-medium">One-off</span>
+              <span className="text-[11px] text-muted-foreground">Specific dates</span>
+            </button>
+          </div>
+        </div>
+
+        <Separator />
+
+        {!isOneOff && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase">Time Slots</h3>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1"
+                onClick={addRecurringSlot}
+              >
+                <IconPlus className="size-3" />
+                Add Slot
+              </Button>
             </div>
 
-            <Separator />
-
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Type</h3>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  className={`flex flex-col items-center gap-1 p-3 rounded-lg border text-sm transition-colors ${
-                    formData.schedule_type === "recurring"
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-input hover:bg-muted/30"
-                  }`}
-                  onClick={() => setFormData({ ...formData, schedule_type: "recurring" })}
+            <div className="space-y-3">
+              {recurringSlots.map((slot) => (
+                <div
+                  key={slot.key}
+                  className="flex items-end gap-2 p-3 rounded-lg border border-input bg-muted/20"
                 >
-                  <span className="font-medium">Recurring</span>
-                  <span className="text-[11px] text-muted-foreground">Repeats weekly</span>
-                </button>
-                <button
-                  type="button"
-                  className={`flex flex-col items-center gap-1 p-3 rounded-lg border text-sm transition-colors ${
-                    formData.schedule_type === "one_off"
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-input hover:bg-muted/30"
-                  }`}
-                  onClick={() => setFormData({ ...formData, schedule_type: "one_off" })}
-                >
-                  <span className="font-medium">One-off</span>
-                  <span className="text-[11px] text-muted-foreground">Specific dates</span>
-                </button>
-              </div>
-            </div>
-
-            <Separator />
-
-            {!isOneOff && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Time Slots</h3>
-                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={addRecurringSlot}>
-                    <IconPlus className="size-3" />
-                    Add Slot
-                  </Button>
+                  <div className="grid grid-cols-3 items-start gap-2 w-full">
+                    <div className="col-span-1 space-y-1.5">
+                      <Label className="text-[11px] text-muted-foreground">Day</Label>
+                      <Select
+                        value={slot.day_of_week.toString()}
+                        onValueChange={(val) =>
+                          updateRecurringSlot(slot.key, "day_of_week", parseInt(val))
+                        }
+                      >
+                        <SelectTrigger className="w-full !h-10 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="p-1">
+                          {DAYS_OF_WEEK.map((d) => (
+                            <SelectItem key={d.value} value={d.value.toString()} className="h-9">
+                              {d.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] text-muted-foreground">Start</Label>
+                      <Input
+                        type="time"
+                        value={slot.start_time}
+                        onChange={(e) => updateRecurringSlot(slot.key, "start_time", e.target.value)}
+                        className="h-10 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] text-muted-foreground">End</Label>
+                      <Input
+                        type="time"
+                        value={slot.end_time}
+                        onChange={(e) => updateRecurringSlot(slot.key, "end_time", e.target.value)}
+                        className="h-10 text-xs"
+                        placeholder="Optional"
+                      />
+                    </div>
+                  </div>
+                  {recurringSlots.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-10 w-10 mb-[1px] text-muted-foreground hover:text-destructive shrink-0"
+                      onClick={() => removeRecurringSlot(slot.key)}
+                    >
+                      <IconTrash className="size-3.5" />
+                    </Button>
+                  )}
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-                <div className="space-y-3">
-                  {recurringSlots.map((slot) => (
-                    <div key={slot.key} className="flex items-end gap-2 p-3 rounded-lg border border-input bg-muted/20">
-                      <div className="grid grid-cols-3 items-start gap-2 w-full">
-                        <div className="col-span-1 space-y-1.5">
-                          <Label className="text-[11px] text-muted-foreground">Day</Label>
-                          <Select
-                            value={slot.day_of_week.toString()}
-                            onValueChange={(val) => updateRecurringSlot(slot.key, "day_of_week", parseInt(val))}
+        {isOneOff && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase">Instances</h3>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1"
+                onClick={addOneOffInstance}
+              >
+                <IconPlus className="size-3" />
+                Add Instance
+              </Button>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground -mt-2">
+              Each instance is a specific date and time this schedule occurs.
+            </p>
+
+            <div className="space-y-3">
+              {oneOffInstances.map((inst) => (
+                <div
+                  key={inst.key}
+                  className="flex items-end gap-2 p-3 rounded-lg border border-input bg-muted/20"
+                >
+                  <div className="grid grid-cols-3 items-start gap-2 w-full">
+                    <div className="col-span-1 space-y-1.5 flex flex-col justify-end">
+                      <Label className="text-[11px] text-muted-foreground">Date *</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full !h-10 justify-start text-left font-normal px-3 text-xs",
+                              !inst.instance_date && "text-muted-foreground"
+                            )}
                           >
-                            <SelectTrigger className="h-9 w-full text-sm">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {DAYS_OF_WEEK.map((d) => (
-                                <SelectItem key={d.value} value={d.value.toString()}>
-                                  {d.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-[11px] text-muted-foreground">Start</Label>
-                          <Input
-                            type="time"
-                            value={slot.start_time}
-                            onChange={(e) => updateRecurringSlot(slot.key, "start_time", e.target.value)}
-                            className="h-9 text-xs"
+                            {inst.instance_date ? (
+                              format(new Date(inst.instance_date), "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <IconCalendarEvent className="ml-auto h-3.5 w-3.5 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={inst.instance_date ? new Date(inst.instance_date) : undefined}
+                            onSelect={(date) =>
+                              updateOneOffInstance(
+                                inst.key,
+                                "instance_date",
+                                date ? format(date, "yyyy-MM-dd") : ""
+                              )
+                            }
+                            initialFocus
                           />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-[11px] text-muted-foreground">End</Label>
-                          <Input
-                            type="time"
-                            value={slot.end_time}
-                            onChange={(e) => updateRecurringSlot(slot.key, "end_time", e.target.value)}
-                            className="h-9 text-xs"
-                            placeholder="Optional"
-                          />
-                        </div>
-                      </div>
-                      {recurringSlots.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-9 w-9 mb-1.5 text-muted-foreground hover:text-destructive shrink-0"
-                          onClick={() => removeRecurringSlot(slot.key)}
-                        >
-                          <IconTrash className="size-3.5" />
-                        </Button>
-                      )}
+                        </PopoverContent>
+                      </Popover>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {isOneOff && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Instances</h3>
-                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={addOneOffInstance}>
-                    <IconPlus className="size-3" />
-                    Add Instance
-                  </Button>
-                </div>
-
-                <p className="text-[11px] text-muted-foreground -mt-2">
-                  Each instance is a specific date and time this schedule occurs.
-                </p>
-
-                <div className="space-y-3">
-                  {oneOffInstances.map((inst) => (
-                    <div key={inst.key} className="flex items-end gap-2 p-3 rounded-lg border border-input bg-muted/20">
-                      <div className="grid grid-cols-3 items-start gap-2 w-full">
-                        <div className="col-span-1 space-y-1.5 flex flex-col justify-end">
-                          <Label className="text-[11px] text-muted-foreground">Date *</Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full h-9 justify-start text-left font-normal px-3 text-xs",
-                                  !inst.instance_date && "text-muted-foreground"
-                                )}
-                              >
-                                {inst.instance_date ? format(new Date(inst.instance_date), "PPP") : <span>Pick a date</span>}
-                                <IconCalendarEvent className="ml-auto h-3.5 w-3.5 opacity-50" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={inst.instance_date ? new Date(inst.instance_date) : undefined}
-                                onSelect={(date) => updateOneOffInstance(inst.key, "instance_date", date ? format(date, "yyyy-MM-dd") : "")}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-[11px] text-muted-foreground">Start</Label>
-                          <Input
-                            type="time"
-                            value={inst.start_time}
-                            onChange={(e) => updateOneOffInstance(inst.key, "start_time", e.target.value)}
-                            className="h-9 text-xs"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-[11px] text-muted-foreground">End</Label>
-                          <Input
-                            type="time"
-                            value={inst.end_time}
-                            onChange={(e) => updateOneOffInstance(inst.key, "end_time", e.target.value)}
-                            className="h-9 text-xs"
-                            placeholder="Optional"
-                          />
-                        </div>
-                      </div>
-                      {oneOffInstances.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-9 w-9 mb-1.5 text-muted-foreground hover:text-destructive shrink-0"
-                          onClick={() => removeOneOffInstance(inst.key)}
-                        >
-                          <IconTrash className="size-3.5" />
-                        </Button>
-                      )}
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] text-muted-foreground">Start</Label>
+                      <Input
+                        type="time"
+                        value={inst.start_time}
+                        onChange={(e) => updateOneOffInstance(inst.key, "start_time", e.target.value)}
+                        className="h-10 text-xs"
+                      />
                     </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] text-muted-foreground">End</Label>
+                      <Input
+                        type="time"
+                        value={inst.end_time}
+                        onChange={(e) => updateOneOffInstance(inst.key, "end_time", e.target.value)}
+                        className="h-10 text-xs"
+                        placeholder="Optional"
+                      />
+                    </div>
+                  </div>
+                  {oneOffInstances.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-10 w-10 mb-[1px] text-muted-foreground hover:text-destructive shrink-0"
+                      onClick={() => removeOneOffInstance(inst.key)}
+                    >
+                      <IconTrash className="size-3.5" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <Separator />
+
+        <div className="space-y-4">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase">Targeting</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="level">Level</Label>
+              <Select
+                value={formData.level_id}
+                onValueChange={(val) =>
+                  setFormData({ ...formData, level_id: val === "__none__" ? "" : val })
+                }
+                disabled={levelsLoading}
+              >
+                <SelectTrigger id="level" className="w-full !h-10">
+                  <SelectValue placeholder="All Levels" />
+                </SelectTrigger>
+                <SelectContent className="p-1">
+                  <SelectItem value="__none__" className="h-9">
+                    All Levels
+                  </SelectItem>
+                  {levelOptions.map((l) => (
+                    <SelectItem key={l.id} value={l.id.toString()} className="h-9">
+                      {l.name}
+                    </SelectItem>
                   ))}
-                </div>
-              </div>
-            )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="group">Group</Label>
+              <Select
+                value={formData.group_id}
+                onValueChange={(val) =>
+                  setFormData({ ...formData, group_id: val === "__none__" ? "" : val })
+                }
+                disabled={groupsLoading || groupOptions.length === 0}
+              >
+                <SelectTrigger id="group" className="w-full !h-10">
+                  <SelectValue placeholder="All Groups" />
+                </SelectTrigger>
+                <SelectContent className="p-1">
+                  <SelectItem value="__none__" className="h-9">
+                    All Groups
+                  </SelectItem>
+                  {groupOptions.map((g) => (
+                    <SelectItem key={g.id} value={g.id.toString()} className="h-9">
+                      {g.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground -mt-2">
+            Optionally restrict this schedule to a specific level and/or group.
+          </p>
+        </div>
 
-            <Separator />
+        <Separator />
 
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Targeting</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="level">Level</Label>
-                  <Select
-                    value={formData.level_id}
-                    onValueChange={(val) => setFormData({ ...formData, level_id: val === "__none__" ? "" : val })}
-                    disabled={levelsLoading}
-                  >
-                    <SelectTrigger id="level">
-                      <SelectValue placeholder="All Levels" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">All Levels</SelectItem>
-                      {levelOptions.map((l) => (
-                        <SelectItem key={l.id} value={l.id.toString()}>
-                          {l.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="group">Group</Label>
-                  <Select
-                    value={formData.group_id}
-                    onValueChange={(val) => setFormData({ ...formData, group_id: val === "__none__" ? "" : val })}
-                    disabled={groupsLoading || groupOptions.length === 0}
-                  >
-                    <SelectTrigger id="group">
-                      <SelectValue placeholder="All Groups" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">All Groups</SelectItem>
-                      {groupOptions.map((g) => (
-                        <SelectItem key={g.id} value={g.id.toString()}>
-                          {g.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+        <div className="space-y-4">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase">Behavior</h3>
+
+          <div className="flex items-center justify-between rounded-lg border border-input p-3 gap-3">
+            <div>
+              <p className="text-sm font-medium">Auto-assign</p>
               <p className="text-[11px] text-muted-foreground">
-                Optionally restrict this schedule to a specific level and/or group.
+                Auto-assign matching students to this schedule
               </p>
             </div>
+            <Switch
+              checked={formData.auto_assign}
+              onCheckedChange={(checked) =>
+                setFormData({
+                  ...formData,
+                  auto_assign: checked,
+                  show_on_form: checked ? false : formData.show_on_form,
+                })
+              }
+            />
+          </div>
 
-            <Separator />
-
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Behavior</h3>
-
-              <div className="flex items-center justify-between rounded-lg border border-input p-3">
-                <div>
-                  <p className="text-sm font-medium">Auto-assign</p>
-                  <p className="text-[11px] text-muted-foreground">Auto-assign matching students to this schedule</p>
-                </div>
-                <Switch
-                  checked={formData.auto_assign}
-                  onCheckedChange={(checked) =>
-                    setFormData({
-                      ...formData,
-                      auto_assign: checked,
-                      show_on_form: checked ? false : formData.show_on_form,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between rounded-lg border border-input p-3">
-                <div>
-                  <p className="text-sm font-medium">Show on Form</p>
-                  <p className="text-[11px] text-muted-foreground">Students can see and choose this during enrollment</p>
-                </div>
-                <Switch checked={formData.show_on_form} onCheckedChange={(checked) => setFormData({ ...formData, show_on_form: checked })} />
-              </div>
+          <div className="flex items-center justify-between rounded-lg border border-input p-3 gap-3">
+            <div>
+              <p className="text-sm font-medium">Show on Form</p>
+              <p className="text-[11px] text-muted-foreground">
+                Students can see and choose this during enrollment
+              </p>
             </div>
+            <Switch
+              checked={formData.show_on_form}
+              onCheckedChange={(checked) => setFormData({ ...formData, show_on_form: checked })}
+            />
+          </div>
+        </div>
 
-            <div className="flex gap-3 pt-2">
-              <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>
-                Cancel
-              </Button>
-              <Button type="submit" className="flex-1" disabled={saving}>
-                {saving ? "Saving..." : isEdit ? "Save Changes" : "Create Schedule"}
-              </Button>
-            </div>
-          </form>
-        </ScrollArea>
-      </div>
+        <div className="flex gap-3 pt-2">
+          <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit" className="flex-1" disabled={saving}>
+            {saving ? "Saving..." : isEdit ? "Save Changes" : "Create Schedule"}
+          </Button>
+        </div>
+      </form>
     </div>
   )
 }

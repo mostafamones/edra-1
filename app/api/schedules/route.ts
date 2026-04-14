@@ -36,6 +36,16 @@ export async function POST(request: NextRequest) {
     }
 
     const schedule = await createSchedule(scheduleData);
+
+    // Persist time slots (ScheduleSheet/ScheduleForm sends these in the POST payload)
+    if (Array.isArray(time_slots) && time_slots.length > 0) {
+      const id = (schedule as any)?.id;
+      if (!id || typeof id !== "number") {
+        throw new Error("Schedule created but no ID returned to attach time slots");
+      }
+      await replaceTimeSlots(id, time_slots);
+    }
+
     return NextResponse.json(schedule, { status: 201 });
   } catch (error) {
     console.error("Error creating schedule:", error);

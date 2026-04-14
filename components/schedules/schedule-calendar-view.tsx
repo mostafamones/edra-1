@@ -16,6 +16,12 @@ interface ScheduleRow {
   timeSlot: ScheduleTimeSlot
 }
 
+function normalizeDayOfWeek(value: number | null | undefined): number {
+  if (value === null || value === undefined) return -1
+  if (value >= 1 && value <= 7) return value % 7
+  return value
+}
+
 function formatTimeShort(time: string) {
   if (!time) return ""
   const [h, m] = time.split(":")
@@ -70,7 +76,7 @@ export function ScheduleCalendarView({ rows }: { rows: ScheduleRow[] }) {
         if (!r.timeSlot.start_time) return false
 
         if (r.schedule.schedule_type !== "one_off") {
-          return r.timeSlot.day_of_week === dayOfWeek
+          return normalizeDayOfWeek(r.timeSlot.day_of_week) === dayOfWeek
         }
 
         const instanceDate = r.timeSlot.instance_date || r.schedule.one_off_date

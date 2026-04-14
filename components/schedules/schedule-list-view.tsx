@@ -50,12 +50,14 @@ export interface ScheduleRow {
 
 export function ScheduleListView({
   activeDays,
+  unscheduledRows = [],
   oneOffRows,
   onEdit,
   onDelete,
   onToggleActive,
 }: {
   activeDays: { dayIndex: number; dayName: string; rows: ScheduleRow[] }[]
+  unscheduledRows?: ScheduleRow[]
   oneOffRows: ScheduleRow[]
   onEdit: (s: ScheduleWithRelations) => void
   onDelete: (s: ScheduleWithRelations) => void
@@ -86,6 +88,33 @@ export function ScheduleListView({
           </div>
         </div>
       ))}
+
+      {unscheduledRows.length > 0 && (
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <h3 className="text-sm font-semibold">Unscheduled</h3>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+              {unscheduledRows.length}
+            </Badge>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+          <div className="grid gap-2">
+            {unscheduledRows.map((row) => (
+              <ScheduleCard
+                key={`unscheduled-${row.schedule.id}-${row.timeSlot.id}`}
+                row={row}
+                dayIndex={-1}
+                onEdit={() => onEdit(row.schedule)}
+                onDelete={() => onDelete(row.schedule)}
+                onToggleActive={() => onToggleActive(row.schedule)}
+              />
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2">
+            These schedules are missing day/time slots. Edit them to add time slots.
+          </p>
+        </div>
+      )}
 
       {oneOffRows.length > 0 && (
         <div>

@@ -5,11 +5,33 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
+    const academyId = searchParams.get("academyId");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
     const scheduleId = searchParams.get("scheduleId");
 
+    // Preferred: academy + optional date range (matches `useSessions` hook)
+    if (academyId) {
+      const toYMD = (d: Date) => d.toISOString().slice(0, 10)
+      const start = startDate || (() => {
+        const d = new Date()
+        d.setDate(d.getDate() - 30)
+        return toYMD(d)
+      })()
+      const end = endDate || (() => {
+        const d = new Date()
+        d.setDate(d.getDate() + 90)
+        return toYMD(d)
+      })()
+
+      const sessions = await getSessionsByDateRange(academyId, start, end);
+      return NextResponse.json(sessions);
+    }
+
+    // Back-compat: scheduleId-only listing
     if (!scheduleId) {
       return NextResponse.json(
-        { error: "Schedule ID is required" },
+        { error: "Academy ID is required" },
         { status: 400 }
       );
     }
