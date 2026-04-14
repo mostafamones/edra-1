@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   Select,
   SelectContent,
@@ -36,6 +35,8 @@ import {
 } from "@/components/ui/form"
 import { cn } from "@/lib/utils"
 import { swatchClassForColorId } from "@/components/helpers/academy-utils"
+import { IconCalendarEvent } from "@tabler/icons-react"
+import { Toggle } from "../ui/toggle"
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -50,7 +51,7 @@ const baseStudentFormSchema = z.object({
   full_name: z.string().min(1, "Student name is required"),
   level_id: z.string().min(1, "Level is required"),
   group_id: z.string().optional().default(""),
-  enrolledScheduleId: z.number().nullable().optional(),
+  enrolledScheduleIds: z.array(z.number()).default([]),
   fields: z.record(z.string(), z.any()).default({}),
 })
 
@@ -73,6 +74,29 @@ function formatDay(day: 0 | 1 | 2 | 3 | 4 | 5 | 6) {
     4: "Thursday", 5: "Friday", 6: "Saturday",
   }
   return days[day] ?? null
+}
+
+type ScheduleRow = Schedule & {
+  auto_assign?: boolean
+  is_mandatory?: boolean
+  time_slots?: Array<{
+    day_of_week: 0 | 1 | 2 | 3 | 4 | 5 | 6
+    start_time: string
+    end_time?: string
+  }>
+}
+
+function scheduleMatchesStudent(
+  s: ScheduleRow,
+  levelId: string,
+  groupId: string
+): boolean {
+  if (s.is_active === false) return false
+  if (levelId && s.level_id && s.level_id.toString() !== levelId) return false
+  // If a schedule is tied to a specific group, don't show/auto-assign it until a group is chosen.
+  if (!groupId && s.group_id != null) return false
+  if (groupId && s.group_id && s.group_id.toString() !== groupId) return false
+  return true
 }
 
 function buildStudentFormSchema(fields: StudentField[]) {
@@ -123,7 +147,7 @@ function buildDefaultValues(
     full_name: initialStudent?.full_name ?? "",
     level_id: initialStudent?.level_id?.toString() ?? "",
     group_id: initialStudent?.group_id?.toString() ?? "",
-    enrolledScheduleId: scheduleIds[0] ?? null,
+    enrolledScheduleIds: scheduleIds,
     fields: fv,
   }
 }
@@ -168,25 +192,119 @@ const StudentFormFields = memo(function StudentFormFields({
   const selectedLevelId = parseInt(levelId || "0", 10)
   const availableGroups = groups.filter((g) => g.level_id === selectedLevelId)
 
-  const availableSchedules = (schedules as any[]).filter((s: any) => {
-    if (s.is_active === false) return false
-    if (s.is_mandatory) return false
-    if (levelId && s.level_id && s.level_id.toString() !== levelId) return false
-    if (groupId && s.group_id && s.group_id.toString() !== groupId) return false
-    return true
-  })
+  const scheduleRows = schedules as ScheduleRow[]
 
-  const shouldShowSchedules =
-    levelId &&
-    (availableGroups.length === 0 || groupId) &&
-    availableSchedules.length > 0
+  // All active schedules for the selected level — shown regardless of group selection
+  const levelSchedules = useMemo(() => {
+    if (!levelId) return []
+    return scheduleRows.filter((s) => {
+      if (s.is_active === false) return false
+      if (s.level_id && s.level_id.toString() !== levelId) return false
+      return true
+    })
+  }, [scheduleRows, levelId])
+
+  // Auto-assign schedules: must fully match (level + group) before being enrolled automatically
+  const autoAssignSchedules = useMemo(
+    () =>
+      levelSchedules.filter(
+        (s) => s.auto_assign === true && scheduleMatchesStudent(s, levelId, groupId)
+      ),
+    [levelSchedules, levelId, groupId]
+  )
+
+  // Every other level schedule the user can manually enroll in.
+  // When a group is selected, hide auto-assign schedules tied to a different group —
+  // they won't auto-enroll and showing them would be confusing.
+  const otherSchedules = useMemo(() => {
+    const autoIds = new Set(autoAssignSchedules.map((s) => s.id))
+    return levelSchedules.filter((s) => {
+      if (autoIds.has(s.id)) return false
+      if (s.is_mandatory === true) return false
+      if (groupId && s.auto_assign === true && s.group_id && s.group_id.toString() !== groupId)
+        return false
+      return true
+    })
+  }, [levelSchedules, autoAssignSchedules, groupId])
+
+  /** Keep the 3+1 layout whenever the academy has schedules; empty states explain what to do next. */
+  const hasScheduleSidebar = scheduleRows.length > 0
+  const canPickSchedules = !!levelId
+  const hasScheduleCards = canPickSchedules && levelSchedules.length > 0
 
   const requiredFields = fields.filter((f) => f.is_required)
   const optionalFields = fields.filter((f) => !f.is_required)
 
-  const handleScheduleChange = useCallback(
-    (value: string) => {
-      form.setValue("enrolledScheduleId", parseInt(value, 10), { shouldDirty: true })
+  const allowedScheduleIdsKey = useMemo(() => {
+    if (!levelId) return ""
+    return levelSchedules
+      .map((s) => s.id)
+      .sort((a, b) => a - b)
+      .join(",")
+  }, [levelSchedules, levelId])
+
+  const autoAssignIdsKey = useMemo(() => {
+    if (!levelId) return ""
+    return autoAssignSchedules
+      .map((s) => s.id)
+      .sort((a, b) => a - b)
+      .join(",")
+  }, [autoAssignSchedules, levelId])
+
+  // Auto-assign schedules are toggled on by default once level is chosen.
+  useEffect(() => {
+    if (!levelId) return
+    // NOTE: Guard heavily to avoid update loops.
+    const allowedIds = new Set<number>(levelSchedules.map((s) => s.id))
+    const autoAssignIds = new Set<number>(autoAssignSchedules.map((s) => s.id))
+    // All auto-assign IDs for this level, regardless of group match
+    const allLevelAutoAssignIds = new Set<number>(
+      levelSchedules.filter((s) => s.auto_assign === true).map((s) => s.id)
+    )
+
+    const cur = (form.getValues("enrolledScheduleIds") ?? []).filter((id) => allowedIds.has(id))
+    const desiredSet = new Set<number>(cur)
+    // Remove stale auto-assigns (e.g. group changed, old auto-assign no longer matches)
+    for (const id of allLevelAutoAssignIds) {
+      if (!autoAssignIds.has(id)) desiredSet.delete(id)
+    }
+    // Add currently matching auto-assigns
+    for (const id of autoAssignIds) desiredSet.add(id)
+
+    const next = [...desiredSet].sort((a, b) => a - b)
+    const curSorted = [...cur].sort((a, b) => a - b)
+
+    let changed = next.length !== curSorted.length
+    if (!changed) {
+      for (let i = 0; i < next.length; i++) {
+        if (next[i] !== curSorted[i]) {
+          changed = true
+          break
+        }
+      }
+    }
+
+    if (changed) {
+      form.setValue("enrolledScheduleIds", next, { shouldDirty: true })
+    }
+  }, [levelId, allowedScheduleIdsKey, autoAssignIdsKey, form, groupId])
+
+  const toggleScheduleEnrollment = useCallback(
+    (scheduleId: number, checked: boolean) => {
+      const cur = form.getValues("enrolledScheduleIds") ?? []
+      if (checked) {
+        form.setValue(
+          "enrolledScheduleIds",
+          [...new Set([...cur, scheduleId])],
+          { shouldDirty: true }
+        )
+      } else {
+        form.setValue(
+          "enrolledScheduleIds",
+          cur.filter((id) => id !== scheduleId),
+          { shouldDirty: true }
+        )
+      }
     },
     [form]
   )
@@ -213,6 +331,11 @@ const StudentFormFields = memo(function StudentFormFields({
     }
 
     try {
+      const allowedScheduleIds = new Set<number>(levelSchedules.map((s) => s.id))
+      const desiredIds = new Set(
+        (values.enrolledScheduleIds ?? []).filter((id) => allowedScheduleIds.has(id))
+      )
+
       let savedStudentId: number
 
       if (initialStudent) {
@@ -242,8 +365,6 @@ const StudentFormFields = memo(function StudentFormFields({
         toast.success("Student created")
       }
 
-      const enrolledScheduleId = values.enrolledScheduleId
-
       if (initialStudent) {
         const currentIds = new Set(
           (initialStudent.schedule_enrollments || [])
@@ -251,29 +372,45 @@ const StudentFormFields = memo(function StudentFormFields({
             .filter(Boolean) as number[]
         )
 
-        if (enrolledScheduleId && !currentIds.has(enrolledScheduleId)) {
-          await fetch(`/api/students/${savedStudentId}/groups`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ scheduleId: enrolledScheduleId, academyId }),
-          })
-        }
-
-        for (const schedId of currentIds) {
-          if (schedId !== enrolledScheduleId) {
-            await fetch(`/api/students/${savedStudentId}/groups`, {
-              method: "DELETE",
+        for (const id of desiredIds) {
+          if (!currentIds.has(id)) {
+            const res = await fetch(`/api/students/${savedStudentId}/groups`, {
+              method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ scheduleId: schedId, academyId }),
+              body: JSON.stringify({ scheduleId: id, academyId }),
             })
+            if (!res.ok) {
+              const errBody = await res.json().catch(() => null)
+              throw new Error(errBody?.error || "Failed to update schedule enrollment")
+            }
           }
         }
-      } else if (enrolledScheduleId) {
-        await fetch(`/api/students/${savedStudentId}/groups`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scheduleId: enrolledScheduleId, academyId }),
-        })
+
+        for (const id of currentIds) {
+          if (!desiredIds.has(id)) {
+            const res = await fetch(`/api/students/${savedStudentId}/groups`, {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ scheduleId: id }),
+            })
+            if (!res.ok) {
+              const errBody = await res.json().catch(() => null)
+              throw new Error(errBody?.error || "Failed to remove schedule enrollment")
+            }
+          }
+        }
+      } else {
+        for (const scheduleId of desiredIds) {
+          const res = await fetch(`/api/students/${savedStudentId}/groups`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ scheduleId, academyId }),
+          })
+          if (!res.ok) {
+            const errBody = await res.json().catch(() => null)
+            throw new Error(errBody?.error || "Failed to enroll in schedule")
+          }
+        }
       }
 
       onSuccess?.()
@@ -427,10 +564,102 @@ const StudentFormFields = memo(function StudentFormFields({
   }
 
   const saving = form.formState.isSubmitting
+  const enrolledIds = form.watch("enrolledScheduleIds") ?? []
+
+  const handleScheduleCardClick = (schedule: ScheduleRow, checked: boolean) => {
+    if (checked && schedule.auto_assign === true && schedule.group_id) {
+      // Auto-assign with a group: set the group and let the auto-assign effect handle enrollment
+      form.setValue("group_id", String(schedule.group_id), { shouldDirty: true })
+    } else {
+      toggleScheduleEnrollment(schedule.id, checked)
+    }
+  }
+
+  const renderScheduleCard = (schedule: ScheduleRow) => {
+    const isOn = enrolledIds.includes(schedule.id)
+    const groupName = schedule.group_id
+      ? groups.find((g) => g.id === schedule.group_id)?.name
+      : null
+    const isAutoAssign = schedule.auto_assign === true
+
+    return (
+      <Toggle
+        key={schedule.id}
+        variant="outline"
+        type="button"
+        className={cn(
+          "w-full h-auto py-2.5 px-3 text-left rounded-md border transition-colors",
+          "hover:bg-muted/40",
+          isOn ? "border-border bg-muted/40" : "border-border/50 bg-transparent"
+        )}
+        pressed={isOn}
+        onPressedChange={(checked) => handleScheduleCardClick(schedule, checked)}
+      >
+        <div className="flex items-start justify-between w-full gap-2.5 min-w-0">
+          <div className="flex-1 min-w-0 space-y-1">
+            <div className="flex items-center gap-1.5">
+              <p className="font-medium text-sm truncate text-foreground leading-tight">
+                {schedule.name}
+              </p>
+              {isAutoAssign && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 h-4 font-normal shrink-0 text-muted-foreground border-muted-foreground/30"
+                >
+                  auto
+                </Badge>
+              )}
+            </div>
+            {groupName && (
+              <p className="text-[11px] text-muted-foreground leading-tight">
+                {groupName}
+              </p>
+            )}
+            {(schedule.time_slots || []).length > 0 && (
+              <div className="flex flex-col gap-0.5">
+                {(schedule.time_slots || []).map((slot, idx) => {
+                  const start = formatTime(slot.start_time)
+                  const end = formatTime(slot.end_time)
+                  return (
+                    <span key={idx} className="text-[11px] text-muted-foreground leading-tight">
+                      {formatDay(slot.day_of_week)}
+                      {start && ` · ${start}`}
+                      {end && `–${end}`}
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+          <div
+            className={cn(
+              "shrink-0 size-3.5 mt-0.5 rounded-sm border transition-colors",
+              isOn
+                ? "border-foreground/40 bg-foreground/12"
+                : "border-muted-foreground/25 bg-transparent"
+            )}
+          />
+        </div>
+      </Toggle>
+    )
+  }
 
   return (
     <Form {...form}>
-      <form id="student-form" onSubmit={onSubmit} className="space-y-4 w-full max-w-xl">
+      <form
+        id="student-form"
+        onSubmit={onSubmit}
+        className="grid grid-cols-1 md:grid-cols-4 w-full max-w-full items-start gap-0"
+      >
+        <div
+          className={cn(
+            "flex flex-col justify-center items-center px-4 lg:px-6 py-8",
+            hasScheduleSidebar
+              ? "md:col-span-3 md:min-h-[calc(100vh-var(--header-height)-2rem)]"
+              : "md:col-span-4"
+          )}
+        >
+          <div className="space-y-4 w-full max-w-xl">
         <div className="space-y-4">
           <h3 className="text-sm font-medium text-muted-foreground uppercase">
             Personal Information
@@ -482,6 +711,7 @@ const StudentFormFields = memo(function StudentFormFields({
                     onValueChange={(val) => {
                       field.onChange(val)
                       form.setValue("group_id", "")
+                      form.setValue("enrolledScheduleIds", [], { shouldDirty: true })
                     }}
                   >
                     <FormControl>
@@ -543,88 +773,6 @@ const StudentFormFields = memo(function StudentFormFields({
           </div>
         </div>
 
-        {shouldShowSchedules && (
-          <>
-            <Separator />
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                  Schedule Enrollment
-                </h3>
-                <span className="text-[11px] text-muted-foreground">
-                  {form.watch("enrolledScheduleId") ? "1 selected" : "0 selected"}
-                </span>
-              </div>
-              <p className="text-[11px] text-muted-foreground -mt-2">
-                Select a schedule for this student. Mandatory sessions are auto-assigned.
-              </p>
-              <FormField
-                control={form.control}
-                name="enrolledScheduleId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <RadioGroup
-                        value={
-                          field.value != null ? String(field.value) : ""
-                        }
-                        onValueChange={(v) => field.onChange(parseInt(v, 10))}
-                        className="gap-2"
-                      >
-                        {availableSchedules.map((schedule: any) => {
-                          const isEnrolled = field.value === schedule.id
-                          return (
-                            <label
-                              key={schedule.id}
-                              htmlFor={`schedule-${schedule.id}`}
-                              className={`flex items-center gap-3 w-full p-3 rounded-lg border text-left text-sm transition-colors cursor-pointer ${isEnrolled
-                                  ? "border-primary/40 bg-primary/5"
-                                  : "border-input hover:bg-muted/30"
-                                }`}
-                            >
-                              <RadioGroupItem
-                                value={schedule.id.toString()}
-                                id={`schedule-${schedule.id}`}
-                              />
-                              <div className="flex-1">
-                                <p
-                                  className={`font-medium truncate ${isEnrolled ? "text-primary" : ""
-                                    }`}
-                                >
-                                  {schedule.name}
-                                </p>
-                                <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                                  {(schedule.time_slots || []).map(
-                                    (slot: any, idx: number) => {
-                                      const start = formatTime(slot.start_time)
-                                      const end = formatTime(slot.end_time)
-                                      return (
-                                        <Badge
-                                          key={idx}
-                                          variant="outline"
-                                          className="text-xs py-0 px-1 font-normal"
-                                        >
-                                          {formatDay(slot.day_of_week)} {start}
-                                          {end && ` - ${end}`}
-                                        </Badge>
-                                      )
-                                    }
-                                  )}
-                                </div>
-                              </div>
-                            </label>
-                          )
-                        })}
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </>
-        )}
-
         {optionalFields.length > 0 && (
           <>
             <Separator />
@@ -649,13 +797,63 @@ const StudentFormFields = memo(function StudentFormFields({
             {saving ? "Saving..." : initialStudent ? "Save Changes" : "Add Student"}
           </Button>
         </div>
+          </div>
+        </div>
+
+        {hasScheduleSidebar && (
+          <aside className="md:col-span-1 border-t md:border-t-0 md:border-l border-border p-4 md:p-6 md:sticky md:top-[calc(var(--header-height)+1rem)] md:h-[calc(100vh-var(--header-height)-2rem)] flex flex-col gap-4 overflow-hidden">
+            <div className="shrink-0 space-y-1">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                Schedule enrollment
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                {enrolledIds.length} selected
+              </p>
+            </div>
+            <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-1">
+              {!canPickSchedules && (
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Select a level to see schedules this student can join.
+                </p>
+              )}
+              {canPickSchedules && !hasScheduleCards && (
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  No schedules match this level and group. You can still save the student and add
+                  schedules later.
+                </p>
+              )}
+              {hasScheduleCards && (
+                <>
+                  {autoAssignSchedules.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                        Auto-assign sessions
+                      </p>
+                      <div className="space-y-2">{autoAssignSchedules.map(renderScheduleCard)}</div>
+                    </div>
+                  )}
+                  {autoAssignSchedules.length > 0 && otherSchedules.length > 0 && (
+                    <Separator className="my-1" />
+                  )}
+                  {otherSchedules.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                        Other sessions
+                      </p>
+                      <div className="space-y-2">{otherSchedules.map(renderScheduleCard)}</div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </aside>
+        )}
       </form>
     </Form>
   )
 })
 
 // ─── Shell (data loading + remount key for resolver / defaults) ─
-
 export const StudentForm = memo(function StudentForm({
   academyId,
   initialStudent,
@@ -692,21 +890,18 @@ export const StudentForm = memo(function StudentForm({
   }
 
   return (
-    <div className="grid grid-cols-4 w-full">
-      <div className="flex justify-center items-center col-span-3">
-        <StudentFormFields
-          key={`${initialStudent?.id ?? "new"}-${fieldsKey}`}
-          academyId={academyId}
-          initialStudent={initialStudent}
-          onSuccess={onSuccess}
-          onCancel={onCancel}
-          fields={fields}
-          levels={levels}
-          groups={groups}
-          schedules={schedules}
-        />
-      </div>
-      <div className="col-span-1 border-l p-4 lg:p-6" />
+    <div className="w-full">
+      <StudentFormFields
+        key={`${initialStudent?.id ?? "new"}-${fieldsKey}`}
+        academyId={academyId}
+        initialStudent={initialStudent}
+        onSuccess={onSuccess}
+        onCancel={onCancel}
+        fields={fields}
+        levels={levels}
+        groups={groups}
+        schedules={schedules}
+      />
     </div>
   )
 })

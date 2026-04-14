@@ -8,7 +8,7 @@ import { Metadata } from "next";
 import { AuthProvider } from "@/components/auth-provider";
 import { Toaster } from "@/components/ui/sonner";
 
-const outfit = Outfit({ subsets: ['latin'], variable: '--font-sans' })
+const outfit = Outfit({subsets:['latin'],variable:'--font-sans'})
 const fontMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
 
 export const metadata: Metadata = {

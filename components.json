@@ -1,19 +1,19 @@
 {
   "$schema": "https://ui.shadcn.com/schema.json",
-  "style": "radix-nova",
+  "style": "radix-lyra",
   "rsc": true,
   "tsx": true,
   "tailwind": {
     "config": "",
     "css": "app/globals.css",
-    "baseColor": "zinc",
+    "baseColor": "neutral",
     "cssVariables": true,
     "prefix": ""
   },
   "iconLibrary": "tabler",
   "rtl": false,
   "menuColor": "default",
-  "menuAccent": "subtle",
+  "menuAccent": "bold",
   "aliases": {
     "components": "@/components",
     "utils": "@/lib/utils",

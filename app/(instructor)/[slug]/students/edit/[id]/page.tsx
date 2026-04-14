@@ -65,7 +65,7 @@ export default function EditStudentPage() {
         ]}
         back={backToList}
       />
-      <div className="p-4 lg:p-6 max-w-2xl">
+      <div className="p-4 lg:p-6 w-full min-w-0 max-w-7xl mx-auto">
         {loading || !academyId ? (
           <DataSkeleton variant="form" count={4} />
         ) : (

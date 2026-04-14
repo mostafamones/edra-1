@@ -43,7 +43,7 @@ export default function CreateStudentPage() {
         back={() => router.push(withAcademyPath(pathname, "/students"))}
         separator
       />
-      <div className="flex flex-1">
+      <div className="flex flex-1 w-full min-w-0">
         {!academyId ? (
           <DataSkeleton variant="form" count={4} />
         ) : (
