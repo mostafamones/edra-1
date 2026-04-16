@@ -26,6 +26,7 @@ import {
   IconLoader2,
 } from "@tabler/icons-react"
 import { cn } from "@/lib/utils"
+import { Kbd, KbdGroup } from "./ui/kbd"
 
 // ── Icon resolver ─────────────────────────────────────────────────────────────
 
@@ -40,11 +41,37 @@ export function AcademySwitcher() {
   const { isMobile } = useSidebar()
   const router = useRouter()
   const { academies, activeAcademy, setActiveAcademy, academyDetails } = useAuth()
+  const [open, setOpen] = React.useState(false)
 
   const handleSwitch = (academy: AcademyEntry) => {
     if (academy.id === activeAcademy?.id) return
     setActiveAcademy(academy)
+    setOpen(false)
   }
+
+  React.useEffect(() => {
+    if (!open) return
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!e.metaKey) return
+      if (e.altKey || e.ctrlKey || e.shiftKey) return
+
+      const k = e.key
+      if (!/^[1-9]$/.test(k)) return
+
+      const index = Number(k) - 1
+      const academy = academies[index]
+      if (!academy) return
+      if (academy.id === activeAcademy?.id) return
+
+      e.preventDefault()
+      setActiveAcademy(academy)
+      setOpen(false)
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [open, academies, activeAcademy?.id, setActiveAcademy])
 
   const subtitle = activeAcademy?.slug
     ? `${activeAcademy.slug}@edra.academy`
@@ -55,25 +82,21 @@ export function AcademySwitcher() {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <DropdownMenu>
+        <DropdownMenu open={open} onOpenChange={setOpen}>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground px-1"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground w-full"
             >
-              <div className="flex aspect-square size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shrink-0">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shrink-0">
                 <AcademyIcon iconId={activeAcademy?.icon ?? null} />
               </div>
 
-              <div className="grid flex-1 text-left text-base leading-tight">
-                <span className="truncate font-semibold">
+              <div className="grid flex-1 text-left text-base">
+                <span className="truncate font-medium">
                   {activeAcademy?.name ?? "No academy"}
                 </span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {subtitle}
-                </span>
               </div>
-
               <IconSelector className="ml-auto size-5 shrink-0 opacity-60 mr-1" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
@@ -94,26 +117,23 @@ export function AcademySwitcher() {
               </div>
             )}
 
-            {academies.map((academy) => {
+            {academies.map((academy, index) => {
               const isActive = academy.id === activeAcademy?.id
               return (
                 <DropdownMenuItem
                   key={academy.id}
                   onClick={() => handleSwitch(academy)}
-                  className={`gap-2 p-2 ${isActive ? "bg-white/2.5" : ""}`}
+                  className={`gap-2 p-1.5 ${isActive ? "bg-white/2.5" : ""}`}
                 >
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-primary text-primary-foreground">
-                    <AcademyIcon iconId={academy.icon} className="size-4" />
+                  <div className="flex size-7 shrink-0 items-center justify-center rounded-md border rounded-none text-primary-foreground">
+                    <AcademyIcon iconId={academy.icon} className="size-3.5" />
                   </div>
 
                   <div className="flex flex-col flex-1 min-w-0">
-                    <span className="text-sm font-medium truncate">{academy.name}</span>
-                    {/* <span className="text-xs text-muted-foreground truncate">
-                      {academy.subdomain}@edra.academy
-                    </span> */}
+                    <span className="text-sm truncate">{academy.name}</span>
                   </div>
 
-                  {isActive && <IconCheck className="ml-auto size-3.5 shrink-0 mr-1" />}
+                  {isActive ? <IconCheck className="ml-auto size-3.5 shrink-0 mr-1" /> : <Kbd>⌘ {index + 1}</Kbd> }
                 </DropdownMenuItem>
               )
             })}
@@ -121,13 +141,13 @@ export function AcademySwitcher() {
             <DropdownMenuSeparator />
 
             <DropdownMenuItem
-              className="gap-2 p-2 cursor-pointer"
+              className="gap-2 p-1.5 cursor-pointer"
               onClick={() => router.push("/create")}
             >
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-transparent">
-                <IconPlus className="size-4" />
+              <div className="flex size-7 shrink-0 items-center justify-center rounded-md border rounded-none bg-transparent">
+                <IconPlus className="size-3.5" />
               </div>
-              <span className="font-medium text-muted-foreground">Create new academy</span>
+              <span className="text-xs text-muted-foreground">Create new academy</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

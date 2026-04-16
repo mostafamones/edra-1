@@ -41,15 +41,19 @@ export function SiteHeader({
 }: SiteHeaderProps) {
   return (
     <header className={cn(
-      "flex h-16 shrink-0 items-center justify-between gap-2 py-6 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-16",
-      separator && "border-b", className
+      "flex h-(--header-height) w-full items-center gap-2 border-b border-border mb-6", separator && "border-b", className
     )}>
-      <div className="flex w-full justify-between items-center gap-1 px-4 lg:gap-2 lg:px-6">
-        {trigger && <SidebarTrigger className="" iconClass="size-4.5" />}
-        <Separator
-          orientation="vertical"
-          className={`mx-2 data-[orientation=vertical]:h-8 ${back ? "mr-0" : "mr-3"}`}
-        />
+      <div className="flex w-full justify-between items-center gap-1 px-4 lg:gap-2">
+        {trigger && (
+          <>
+            <SidebarTrigger />
+            <Separator
+              orientation="vertical"
+              className={`mx-2 data-[orientation=vertical]:h-10 ${back ? "mr-0" : "mr-3"}`}
+            />
+          </>
+        )}
+        
         <div className="flex font-[Outfit] gap-2 items-center">
           {back && <>
             <Button size="icon-sm" variant="ghost" onClick={back}>

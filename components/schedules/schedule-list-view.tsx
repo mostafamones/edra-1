@@ -17,6 +17,7 @@ import {
 import type { ScheduleTimeSlot, ScheduleWithRelations } from "@/lib/types"
 import { encodeScheduleId } from "@/lib/hashid"
 import Link from "next/link"
+import { ScheduleCard as ScheduleCardTest } from "./schedule-card"
 
 const DAY_ACCENT = [
   "border-l-primary/60",
@@ -28,7 +29,7 @@ const DAY_ACCENT = [
   "border-l-primary/60",
 ]
 
-function formatTime(time: string) {
+export function formatTime(time: string) {
   if (!time) return ""
   const [h, m] = time.split(":")
   const hour = parseInt(h)
@@ -64,7 +65,11 @@ export function ScheduleListView({
   onToggleActive: (s: ScheduleWithRelations) => void
 }) {
   return (
+    
     <div className="space-y-6">
+      <div className="space-y-2">
+        {activeDays.map(({ dayIndex, dayName, rows: dayRows }) => dayRows.map((row, index) => <ScheduleCardTest key={index} schedule={row.schedule} />))}
+      </div>
       {activeDays.map(({ dayIndex, dayName, rows: dayRows }) => (
         <div key={dayIndex}>
           <div className="flex items-center gap-3 mb-3">

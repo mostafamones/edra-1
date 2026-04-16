@@ -11,8 +11,8 @@ export default async function InstructorLayout({ children }: { children: React.R
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
+          "--sidebar-width": "calc(var(--spacing) * 64)",
+          "--header-height": "calc(var(--spacing) * 16)",
         } as React.CSSProperties
       }
       defaultOpen={defaultOpen}

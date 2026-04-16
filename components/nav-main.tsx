@@ -15,8 +15,9 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { IconCirclePlusFilled, IconMail } from "@tabler/icons-react"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { QuickCreateData, withAcademyPath } from "@/components/helpers/sidebar"
+import { useAuth } from "./auth-provider"
 
 export function NavMain({
   items,
@@ -28,7 +29,9 @@ export function NavMain({
   }[]
 }) {
   const pathname = usePathname()
-
+  const router = useRouter()
+  const { activeAcademy } = useAuth()
+  
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
@@ -55,15 +58,15 @@ export function NavMain({
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button
+            {/* <Button
               size="icon"
               className="size-8 group-data-[collapsible=icon]:opacity-0"
               variant="outline"
+              onClick={() => {router.push(`/${activeAcademy?.slug}/inbox`)}}
             >
-              <IconMail
-              />
+              <IconMail />
               <span className="sr-only">Inbox</span>
-            </Button>
+            </Button> */}
           </SidebarMenuItem>
         </SidebarMenu>
         <SidebarMenu>

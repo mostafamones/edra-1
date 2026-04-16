@@ -25,22 +25,19 @@ export interface AppInputProps extends React.InputHTMLAttributes<HTMLInputElemen
   variant?: "sm" | "md" | "lg" | "xl";
 }
 
-const inputVariants = cva(
-  {
-    base: "h-8",
-    variants: {
-      variant: {
-        sm: "h-6",
-        md: "h-10",
-        lg: "h-12",
-        xl: "h-14",
-      },
+const inputVariants = cva("", {
+  variants: {
+    variant: {
+      sm: "h-6",
+      md: "h-10",
+      lg: "h-12",
+      xl: "h-14",
     },
-    defaultVariants: {
-      variant: "md",
-    },
-  }
-)
+  },
+  defaultVariants: {
+    variant: "md",
+  },
+})
 
 export const TextInput = React.forwardRef<HTMLInputElement, AppInputProps>(
   ({ label, error, className, containerClassName, required, variant, ...props }, ref) => {

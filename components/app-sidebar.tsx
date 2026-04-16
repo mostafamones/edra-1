@@ -12,6 +12,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { MainSidebarData, SecondarySidebarData, SidebarNotes } from "@/components/helpers/sidebar"
 import { useAuth } from "./auth-provider"
@@ -23,17 +24,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const userEmail = user?.email || "";
   const avatarUrl = user?.user_metadata?.avatar_url || "";
 
+  const { open } = useSidebar();
+
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
+      <SidebarHeader className={open ? "px-2" : "mt-1"}>
         <AcademySwitcher />
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className={open ? "px-2" : ""}>
         <NavMain items={MainSidebarData} />
-        <NavDocuments items={SidebarNotes} />
+        {/* <NavDocuments items={SidebarNotes} /> */}
         <NavSecondary items={SecondarySidebarData} className="mt-auto" />
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className={open ? "" : "mb-2"}>
         <NavUser user={{ name: userName, email: userEmail, avatar: avatarUrl }} />
       </SidebarFooter>
     </Sidebar>
