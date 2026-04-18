@@ -43,12 +43,12 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/in
 
 // ─── Types ────────────────────────────────────────────────────
 
-export interface StudentDataTableProps {
-  data: StudentWithLevelRating[]
-  columns: ColumnDef<StudentWithLevelRating>[]
+export interface StudentDataTableProps<TRow extends StudentWithLevelRating = StudentWithLevelRating> {
+  data: TRow[]
+  columns: ColumnDef<TRow>[]
   searchable?: boolean
   searchPlaceholder?: string
-  searchFn?: (student: StudentWithLevelRating, query: string) => boolean
+  searchFn?: (student: TRow, query: string) => boolean
   paginated?: boolean
   defaultPageSize?: number
   selectable?: boolean
@@ -65,7 +65,7 @@ export interface StudentDataTableProps {
 
 // ─── Component ───────────────────────────────────────────────
 
-export function StudentDataTable({
+export function StudentDataTable<TRow extends StudentWithLevelRating = StudentWithLevelRating>({
   data,
   columns,
   searchable = false,
@@ -83,7 +83,7 @@ export function StudentDataTable({
   emptyMessage = "No students found",
   toolbar,
   searchRight,
-}: StudentDataTableProps) {
+}: StudentDataTableProps<TRow>) {
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
   const [sorting, setSorting] = useState<SortingState>([])

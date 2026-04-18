@@ -39,6 +39,18 @@ interface SortableColumnItemProps {
   canDrag: boolean
 }
 
+function getColumnId<TData, TValue>(column: ColumnDef<TData, TValue>): string | null {
+  if ("id" in column && typeof column.id === "string") {
+    return column.id
+  }
+
+  if ("accessorKey" in column && typeof column.accessorKey === "string") {
+    return column.accessorKey
+  }
+
+  return null
+}
+
 function SortableColumnItem({
   id,
   displayName,
@@ -107,23 +119,23 @@ export function DraggableColumnDropdown<TData, TValue>({
   getColumnName,
 }: DraggableColumnDropdownProps<TData, TValue>) {
   // Build toggleable columns list — exclude fixed columns
-  const toggleableColumns = columns.filter((col) => {
-    const id = col.id || (col as any).accessorKey
-    return id && !fixedStartColumns.includes(id) && !fixedEndColumns.includes(id)
-  })
+  const toggleableColumns = columns
+    .map((column) => ({ column, id: getColumnId(column) }))
+    .filter((entry): entry is { column: ColumnDef<TData, TValue>; id: string } => (
+      entry.id !== null &&
+      !fixedStartColumns.includes(entry.id) &&
+      !fixedEndColumns.includes(entry.id)
+    ))
 
   // Get column IDs ordered according to columnOrder state, or use default order
   const orderedColumnIds = columnOrder.length > 0
-    ? columnOrder.filter((id) => toggleableColumns.some((col) => {
-      const colId = col.id || (col as any).accessorKey
-      return colId === id
-    }))
-    : toggleableColumns.map((col) => col.id || (col as any).accessorKey)
+    ? columnOrder.filter((id) => toggleableColumns.some((column) => column.id === id))
+    : toggleableColumns.map((column) => column.id)
 
   // Add any missing columns (new fields, etc.)
-  const allToggleableIds = toggleableColumns.map((col) => (col.id || (col as any).accessorKey) as string)
+  const allToggleableIds = toggleableColumns.map((column) => column.id)
   const missingIds = allToggleableIds.filter((id) => !orderedColumnIds.includes(id))
-  const finalColumnIds = Array.from(new Set([...orderedColumnIds, ...missingIds])) as string[]
+  const finalColumnIds = Array.from(new Set([...orderedColumnIds, ...missingIds]))
 
   // Setup drag-and-drop sensors
   const sensors = useSensors(
@@ -165,8 +177,9 @@ export function DraggableColumnDropdown<TData, TValue>({
         <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd} sensors={sensors}>
           <SortableContext items={finalColumnIds as UniqueIdentifier[]} strategy={verticalListSortingStrategy}>
             {finalColumnIds.map((colId) => {
-              const col = toggleableColumns.find((c) => (c.id || (c as any).accessorKey) === colId)
-              if (!col) return null
+              const columnEntry = toggleableColumns.find((column) => column.id === colId)
+              if (!columnEntry) return null
+              const col = columnEntry.column
 
               let displayName = ""
               if (getColumnName) {

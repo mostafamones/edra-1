@@ -6,6 +6,7 @@ import { format } from "date-fns"
 import { toast } from "sonner"
 import { IconTrash } from "@tabler/icons-react"
 
+import { getErrorMessage } from "@/lib/get-error-message"
 import { useFields } from "@/lib/hooks/use-data"
 import { encodeStudentId } from "@/lib/hashid"
 import type {
@@ -26,8 +27,17 @@ import {
 import { StudentDataTable } from "@/components/students/student-data-table"
 import { buildCompactColumns } from "@/components/students/columns"
 
+type AttendanceStudent = AttendanceWithStudent["student"] & Pick<
+  StudentWithLevelRating,
+  "level" | "group" | "schedule_enrollments" | "student_field_values"
+>
+
+type AttendanceRecordWithRelations = Omit<AttendanceWithStudent, "student"> & {
+  student: AttendanceStudent
+}
+
 type MixedStudentRow = StudentWithLevelRating & {
-  attendanceRecord: AttendanceWithStudent
+  attendanceRecord: AttendanceRecordWithRelations
 }
 
 interface AttendanceTableProps {
@@ -74,8 +84,8 @@ export function AttendanceTable({
 
       toast.success("Attendance updated")
       onStatusUpdate?.()
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to update status"))
     } finally {
       setUpdatingId(null)
     }
@@ -96,8 +106,8 @@ export function AttendanceTable({
 
       toast.success("Attendance removed")
       onStatusUpdate?.()
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to delete attendance"))
     } finally {
       setUpdatingId(null)
     }
@@ -105,29 +115,31 @@ export function AttendanceTable({
 
   const mappedData = useMemo<MixedStudentRow[]>(() => {
     return (data || []).map((record) => ({
-      ...(record.student as any),
-      level: (record.student as any).level || null,
-      group: (record.student as any).group || null,
-      schedule_enrollments: (record.student as any).schedule_enrollments || [],
-      student_field_values: (record.student as any).student_field_values || [],
-      attendanceRecord: record,
+      ...record.student,
+      level: (record.student as AttendanceStudent).level || null,
+      group: (record.student as AttendanceStudent).group || null,
+      schedule_enrollments: (record.student as AttendanceStudent).schedule_enrollments || [],
+      student_field_values: (record.student as AttendanceStudent).student_field_values || [],
+      attendanceRecord: record as AttendanceRecordWithRelations,
     }))
   }, [data])
 
   const columns = useMemo<ColumnDef<MixedStudentRow>[]>(() => {
-    const baseCols = buildCompactColumns(fields || [], false) as ColumnDef<MixedStudentRow>[]
+    const baseCols = buildCompactColumns<MixedStudentRow>(fields || [], false)
 
-    const nameColIndex = baseCols.findIndex((c) => (c as any).accessorKey === "full_name")
+    const nameColIndex = baseCols.findIndex(
+      (column) => "accessorKey" in column && column.accessorKey === "full_name"
+    )
     if (nameColIndex !== -1) {
       baseCols[nameColIndex] = {
         ...baseCols[nameColIndex],
         cell: ({ row }) => {
           const student = row.original
           const hasMatchingSchedule = student.schedule_enrollments?.some(
-            (e: any) => e.schedule_id === session.schedule_id
+            (enrollment) => enrollment.schedule?.id === session.schedule_id
           )
           const isAnomaly = !hasMatchingSchedule
-          const isUnresolved = isAnomaly && !(student.attendanceRecord as any).note
+          const isUnresolved = isAnomaly && !student.attendanceRecord.note
 
           return (
             <div className="min-w-0 pl-2">
@@ -160,7 +172,7 @@ export function AttendanceTable({
       id: "time",
       header: "Check-in Time",
       cell: ({ row }) => {
-        const timeVal = (row.original.attendanceRecord as any).checkin_time
+        const timeVal = row.original.attendanceRecord.checkin_time
         if (!timeVal) return <span className="text-muted-foreground text-sm">-</span>
         return (
           <span className="text-sm text-muted-foreground">
@@ -174,7 +186,7 @@ export function AttendanceTable({
       id: "status",
       header: "Status",
       cell: ({ row }) => {
-        const status = (row.original.attendanceRecord as any).status
+        const status = row.original.attendanceRecord.status
         const studentId = row.original.id
         const isUpdating = updatingId === studentId
 
@@ -248,7 +260,7 @@ export function AttendanceTable({
     }
 
     return [...baseCols, timeCol, statusCol, actionCol]
-  }, [fields, updatingId, session.status, session.schedule?.id])
+  }, [fields, updatingId, session.schedule_id, session.status])
 
   return (
     <div className="rounded-xl border bg-card">
@@ -265,8 +277,8 @@ export function AttendanceTable({
 
       <div className="p-4">
         <StudentDataTable
-          data={mappedData as any}
-          columns={columns as any}
+          data={mappedData}
+          columns={columns}
           paginated
           defaultPageSize={15}
           searchable
@@ -277,4 +289,3 @@ export function AttendanceTable({
     </div>
   )
 }
-

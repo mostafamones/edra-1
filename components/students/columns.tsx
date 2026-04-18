@@ -1,6 +1,6 @@
 "use client"
 
-import { ColumnDef } from "@tanstack/react-table"
+import type { CellContext, Column, ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
@@ -28,7 +28,22 @@ import { STATUS_COLORS, getFieldDisplayValue } from "./helpers"
 
 // ─── Sortable Header ──────────────────────────────────────────
 
-export function SortableHeader({ column, label }: { column: any; label: string }) {
+type StudentScheduleEnrollment = NonNullable<StudentWithLevelRating["schedule_enrollments"]>[number]
+type StudentSchedule = NonNullable<StudentScheduleEnrollment["schedule"]> & {
+  is_mandatory?: boolean
+}
+
+function isMandatorySchedule(schedule: StudentScheduleEnrollment["schedule"]) {
+  return (schedule as StudentSchedule | null)?.is_mandatory === true
+}
+
+export function SortableHeader<TData>({
+  column,
+  label,
+}: {
+  column: Column<TData, unknown>
+  label: string
+}) {
   const sorted = column.getIsSorted()
   return (
     <button
@@ -49,7 +64,7 @@ export function SortableHeader({ column, label }: { column: any; label: string }
 
 // ─── Core column definitions ──────────────────────────────────
 
-export function selectColumn(): ColumnDef<StudentWithLevelRating> {
+export function selectColumn<TRow extends StudentWithLevelRating>(): ColumnDef<TRow> {
   return {
     id: "select",
     header: ({ table }) => (
@@ -78,7 +93,7 @@ export function selectColumn(): ColumnDef<StudentWithLevelRating> {
   }
 }
 
-export function nameColumn(): ColumnDef<StudentWithLevelRating> {
+export function nameColumn<TRow extends StudentWithLevelRating>(): ColumnDef<TRow> {
   return {
     accessorKey: "full_name",
     header: ({ column }) => <SortableHeader column={column} label="NAME" />,
@@ -89,7 +104,7 @@ export function nameColumn(): ColumnDef<StudentWithLevelRating> {
   }
 }
 
-export function statusColumn(): ColumnDef<StudentWithLevelRating> {
+export function statusColumn<TRow extends StudentWithLevelRating>(): ColumnDef<TRow> {
   return {
     accessorKey: "status",
     header: ({ column }) => <SortableHeader column={column} label="STATUS" />,
@@ -109,7 +124,7 @@ export function statusColumn(): ColumnDef<StudentWithLevelRating> {
   }
 }
 
-export function levelColumn(): ColumnDef<StudentWithLevelRating> {
+export function levelColumn<TRow extends StudentWithLevelRating>(): ColumnDef<TRow> {
   return {
     id: "level",
     header: "LEVEL",
@@ -125,7 +140,7 @@ export function levelColumn(): ColumnDef<StudentWithLevelRating> {
   }
 }
 
-export function groupColumn(): ColumnDef<StudentWithLevelRating> {
+export function groupColumn<TRow extends StudentWithLevelRating>(): ColumnDef<TRow> {
   return {
     id: "group",
     header: "GROUP",
@@ -141,7 +156,7 @@ export function groupColumn(): ColumnDef<StudentWithLevelRating> {
   }
 }
 
-export function schedulesColumn(): ColumnDef<StudentWithLevelRating> {
+export function schedulesColumn<TRow extends StudentWithLevelRating>(): ColumnDef<TRow> {
   return {
     id: "schedules",
     header: "SCHEDULES",
@@ -152,8 +167,8 @@ export function schedulesColumn(): ColumnDef<StudentWithLevelRating> {
       }
 
       const sortedSchedules = [...schedules].sort((a, b) => {
-        const aMandatory = (a.schedule as any)?.is_mandatory ? 1 : 0
-        const bMandatory = (b.schedule as any)?.is_mandatory ? 1 : 0
+        const aMandatory = isMandatorySchedule(a.schedule) ? 1 : 0
+        const bMandatory = isMandatorySchedule(b.schedule) ? 1 : 0
         return aMandatory - bMandatory
       })
 
@@ -187,7 +202,7 @@ export function schedulesColumn(): ColumnDef<StudentWithLevelRating> {
   }
 }
 
-export function joinedColumn(): ColumnDef<StudentWithLevelRating> {
+export function joinedColumn<TRow extends StudentWithLevelRating>(): ColumnDef<TRow> {
   return {
     accessorKey: "created_at",
     header: ({ column }) => <SortableHeader column={column} label="Joined" />,
@@ -203,17 +218,19 @@ export function joinedColumn(): ColumnDef<StudentWithLevelRating> {
   }
 }
 
-export function fieldColumns(fields: StudentField[]): ColumnDef<StudentWithLevelRating>[] {
+export function fieldColumns<TRow extends StudentWithLevelRating>(
+  fields: StudentField[],
+): ColumnDef<TRow>[] {
   return fields.map((field) => ({
     id: `field_${field.id}`,
-    header: ({ column }: any) => <SortableHeader column={column} label={field.name.toUpperCase()} />,
-    accessorFn: (row: StudentWithLevelRating) => {
+    header: ({ column }) => <SortableHeader column={column} label={field.name.toUpperCase()} />,
+    accessorFn: (row: TRow) => {
       const fv = (row.student_field_values || []).find((v) => v.field_id === field.id)
       if (!fv) return ""
       return getFieldDisplayValue(fv, field.field_type)
     },
-    cell: ({ getValue }: any) => {
-      const val = getValue() as string
+    cell: ({ getValue }: CellContext<TRow, string>) => {
+      const val = getValue()
       if (!val) return <span className="text-muted-foreground text-xs">—</span>
       if (field.field_type === "boolean") {
         return (
@@ -228,11 +245,11 @@ export function fieldColumns(fields: StudentField[]): ColumnDef<StudentWithLevel
   }))
 }
 
-export function actionsColumn(
-  onEdit: (s: StudentWithLevelRating) => void,
-  onDelete: (s: StudentWithLevelRating) => void,
-  onArchive?: (s: StudentWithLevelRating) => void,
-): ColumnDef<StudentWithLevelRating> {
+export function actionsColumn<TRow extends StudentWithLevelRating>(
+  onEdit: (s: TRow) => void,
+  onDelete: (s: TRow) => void,
+  onArchive?: (s: TRow) => void,
+): ColumnDef<TRow> {
   return {
     id: "actions",
     enableHiding: false,
@@ -296,36 +313,36 @@ export function actionsColumn(
   }
 }
 
-export function buildFullColumns(
+export function buildFullColumns<TRow extends StudentWithLevelRating>(
   fields: StudentField[],
-  onEdit: (s: StudentWithLevelRating) => void,
-  onDelete: (s: StudentWithLevelRating) => void,
-  onArchive?: (s: StudentWithLevelRating) => void,
-): ColumnDef<StudentWithLevelRating>[] {
+  onEdit: (s: TRow) => void,
+  onDelete: (s: TRow) => void,
+  onArchive?: (s: TRow) => void,
+): ColumnDef<TRow>[] {
   return [
-    selectColumn(),
-    nameColumn(),
-    statusColumn(),
-    levelColumn(),
-    groupColumn(),
-    schedulesColumn(),
-    ...fieldColumns(fields),
-    joinedColumn(),
+    selectColumn<TRow>(),
+    nameColumn<TRow>(),
+    statusColumn<TRow>(),
+    levelColumn<TRow>(),
+    groupColumn<TRow>(),
+    schedulesColumn<TRow>(),
+    ...fieldColumns<TRow>(fields),
+    joinedColumn<TRow>(),
     actionsColumn(onEdit, onDelete, onArchive),
   ]
 }
 
-export function buildCompactColumns(
+export function buildCompactColumns<TRow extends StudentWithLevelRating>(
   fields: StudentField[],
   selectable?: boolean,
-  extraActionsColumn?: ColumnDef<StudentWithLevelRating>,
-): ColumnDef<StudentWithLevelRating>[] {
+  extraActionsColumn?: ColumnDef<TRow>,
+): ColumnDef<TRow>[] {
   const requiredFields = fields.filter((f) => f.is_required)
-  const cols: ColumnDef<StudentWithLevelRating>[] = [
-    nameColumn(),
-    ...fieldColumns(requiredFields),
+  const cols: ColumnDef<TRow>[] = [
+    nameColumn<TRow>(),
+    ...fieldColumns<TRow>(requiredFields),
   ]
-  if (selectable) cols.unshift(selectColumn())
+  if (selectable) cols.unshift(selectColumn<TRow>())
   if (extraActionsColumn) cols.push(extraActionsColumn)
   return cols
 }

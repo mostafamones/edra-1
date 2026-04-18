@@ -1,4 +1,6 @@
-import { Button } from "@/components/ui/button";
+import Link from "next/link"
+
+import { Button } from "@/components/ui/button"
 
 export default function Page() {
   return (
@@ -7,7 +9,7 @@ export default function Page() {
         <h1 className="font-semibold text-lg">Signed Up Successfully</h1>
         <p className="text-muted-foreground">This portal is still under construction.</p>
         <Button asChild variant="link" className="text-foreground">
-          <a href="/my-courses">View your courses</a>
+          <Link href="/my-courses">View your courses</Link>
         </Button>
       </div>
     </div>

@@ -8,6 +8,7 @@ import { IconSchool } from "@tabler/icons-react"
 import { Progress } from "@/components/ui/progress"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAcademy, type AcademyWithMeta } from "@/lib/hooks/use-data"
+import { cn } from "@/lib/utils"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -130,18 +131,15 @@ function AuthProviderInner({
         ) : null}
       </AnimatePresence>
 
-      <motion.div
-        key="auth-content"
-        initial={false}
-        animate={{ 
-          opacity: isAuthWaiting && isProtected ? 0 : 1,
-          filter: isAuthWaiting && isProtected ? "blur(4px)" : "blur(0px)" 
-        }}
-        transition={{ duration: 0.4 }}
-        className="min-h-screen w-full flex flex-col"
+      {/* Plain div (not motion): filter/transform on an ancestor breaks `position: fixed` for the app sidebar. */}
+      <div
+        className={cn(
+          "min-h-screen w-full flex flex-col transition-opacity duration-500 ease-out",
+          isAuthWaiting && isProtected ? "pointer-events-none opacity-0" : "opacity-100"
+        )}
       >
         {children}
-      </motion.div>
+      </div>
     </AuthContext.Provider>
   )
 }

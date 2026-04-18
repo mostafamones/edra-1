@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useCallback, useRef } from "react"
-import Papa from "papaparse"
 import {
   Dialog,
   DialogContent,
@@ -33,8 +32,9 @@ import {
   IconCheck,
   IconX,
 } from "@tabler/icons-react"
-import type { StudentField, Level, Group, Schedule } from "@/lib/types"
-import type { ParsedStudent } from "@/lib/import-parsers"
+import { getErrorMessage } from "@/lib/get-error-message"
+import type { StudentField, Level, Group, Schedule, ScheduleTimeSlot } from "@/lib/types"
+import type { ParsedStudent, ProcessedStudent } from "@/lib/import-parsers"
 import {
   toSnakeCase,
   parseCSV as parseCSVErrors,
@@ -57,11 +57,32 @@ interface StudentImportDialogProps {
   groups: Group[]
   customFields: StudentField[]
   existingStudents: string[]
-  schedules: Schedule[]
+  schedules: ImportSchedule[]
 }
 
 type ImportFormat = "csv" | "json"
 type ImportStep = "upload" | "preview" | "importing" | "complete"
+type ImportSchedule = Schedule & {
+  is_mandatory?: boolean
+  time_slots?: Pick<ScheduleTimeSlot, "day_of_week" | "start_time" | "end_time">[] | null
+}
+type ParserSchedule = {
+  id: number
+  name: string
+  level_id?: number | null
+  branch_id?: number | null
+}
+type BulkImportError = {
+  row: number
+  message: string
+}
+type BulkImportResponse = {
+  created: number
+  skipped: number
+  skippedNames?: string[]
+  errors?: BulkImportError[]
+  error?: string
+}
 
 // ─── Helpers ───────────────────────────────────────────────────
 
@@ -74,7 +95,7 @@ function formatTime(timeStr?: string) {
   return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
 }
 
-function formatDay(day: 0 | 1 | 2 | 3 | 4 | 5 | 6 | null) {
+function formatDay(day: number | null) {
   const days: Record<number, string> = { 0: "Sun", 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat" }
   if (day === null) return null
   return days[day]
@@ -115,13 +136,20 @@ export function StudentImportDialog({
     ? groups.filter((g) => g.level_id === parseInt(defaultLevelId))
     : []
 
-  const availableSchedules = schedules.filter((s: any) => {
-    if (s.is_active === false) return false
-    if (s.is_mandatory) return false
-    if (defaultLevelId && s.level_id && s.level_id.toString() !== defaultLevelId) return false
-    if (defaultGroupId && s.group_id && s.group_id.toString() !== defaultGroupId) return false
+  const availableSchedules = schedules.filter((schedule) => {
+    if (schedule.is_active === false) return false
+    if (schedule.is_mandatory) return false
+    if (defaultLevelId && schedule.level_id && schedule.level_id.toString() !== defaultLevelId) return false
+    if (defaultGroupId && schedule.group_id && schedule.group_id.toString() !== defaultGroupId) return false
     return true
   })
+
+  const parserSchedules: ParserSchedule[] = availableSchedules.map((schedule) => ({
+    id: schedule.id,
+    name: schedule.name,
+    level_id: schedule.level_id,
+    branch_id: schedule.group_id,
+  }))
 
   const resetDialog = useCallback(() => {
     setFormat("csv")
@@ -156,12 +184,11 @@ export function StudentImportDialog({
       // Pass groups as "branches" for the shared parser (same shape: id, name, level_id)
       const parserBranches = groups.map((g) => ({ id: g.id, name: g.name, level_id: g.level_id ?? 0 }))
 
-      let result: ParsedStudent[] = []
       const parseResult = isCsv
-        ? parseCSVErrors(content, { levels, branches: parserBranches, schedules: availableSchedules as any, existingStudentNames: existingStudents, customFields })
-        : parseJSONErrors(content, { levels, branches: parserBranches, schedules: availableSchedules as any, existingStudentNames: existingStudents, customFields })
+        ? parseCSVErrors(content, { levels, branches: parserBranches, schedules: parserSchedules, existingStudentNames: existingStudents, customFields })
+        : parseJSONErrors(content, { levels, branches: parserBranches, schedules: parserSchedules, existingStudentNames: existingStudents, customFields })
 
-      result = parseResult.students
+      const result = parseResult.students
       if (parseResult.errors.length > 0) {
         toast.error(`Found ${parseResult.errors.length} error${parseResult.errors.length > 1 ? "s" : ""} in the file`)
       }
@@ -176,7 +203,7 @@ export function StudentImportDialog({
     }
     reader.onerror = () => toast.error("Failed to read the file")
     reader.readAsText(selectedFile)
-  }, [levels, groups, existingStudents, customFields, availableSchedules])
+  }, [levels, groups, existingStudents, customFields, parserSchedules])
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation()
@@ -194,7 +221,7 @@ export function StudentImportDialog({
     const templateOptions = {
       levels: levels.map((l) => ({ name: l.name })),
       branches: groups.map((g) => ({ name: g.name, level_id: g.level_id ?? 0 })),
-      schedules: availableSchedules.map((s: any) => ({ name: s.name })),
+      schedules: availableSchedules.map((schedule) => ({ name: schedule.name })),
       customFields,
     }
     if (format === "csv") downloadCSVTemplate(templateOptions)
@@ -225,9 +252,9 @@ export function StudentImportDialog({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          students: processed.map((s) => ({
-            ...s,
-            group_id: (s as any).branch_id ?? null,
+          students: processed.map((student: ProcessedStudent) => ({
+            ...student,
+            group_id: student.branch_id ?? null,
           })),
           academyId,
           defaultLevelId: defaultLevelId ? parseInt(defaultLevelId) : undefined,
@@ -239,14 +266,14 @@ export function StudentImportDialog({
       clearInterval(progressInterval)
       setImportProgress(100)
 
-      const result = await response.json()
+      const result = (await response.json()) as BulkImportResponse
       if (!response.ok) throw new Error(result.error || "Failed to import students")
 
       setImportResults({
         created: result.created,
         skipped: result.skipped + duplicates,
         skippedNames: result.skippedNames || [],
-        errors: result.errors?.map((e: any) => `Row ${e.row}: ${e.message}`) || [],
+        errors: result.errors?.map((error) => `Row ${error.row}: ${error.message}`) || [],
       })
       setStep("complete")
 
@@ -255,9 +282,9 @@ export function StudentImportDialog({
       else toast.warning(`Imported ${result.created} student${result.created > 1 ? "s" : ""}. ${totalErrors} skipped or had errors.`)
 
       onSuccess?.()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Import error:", error)
-      toast.error(error?.message || "Failed to import students")
+      toast.error(getErrorMessage(error, "Failed to import students"))
       setStep("preview")
     }
   }, [parsedStudents, customFields, defaultLevelId, defaultGroupId, academyId, selectedScheduleId, onSuccess])
@@ -271,11 +298,11 @@ export function StudentImportDialog({
   const renderPreviewRow = (student: ParsedStudent, index: number) => {
     const hasErrors = student.errors && student.errors.length > 0
     const effLevelId = student.level_id || (defaultLevelId ? parseInt(defaultLevelId) : null)
-    const effGroupId = (student as any).branch_id || (defaultGroupId ? parseInt(defaultGroupId) : null)
+    const effGroupId = student.branch_id || (defaultGroupId ? parseInt(defaultGroupId) : null)
 
-    const rowSchedules = availableSchedules.filter((s: any) => {
-      if (s.level_id && effLevelId && s.level_id !== effLevelId) return false
-      if (s.group_id && effGroupId && s.group_id !== effGroupId) return false
+    const rowSchedules = availableSchedules.filter((schedule) => {
+      if (schedule.level_id && effLevelId && schedule.level_id !== effLevelId) return false
+      if (schedule.group_id && effGroupId && schedule.group_id !== effGroupId) return false
       return true
     })
 
@@ -283,7 +310,7 @@ export function StudentImportDialog({
       <tr key={student.full_name + "-" + index} className={hasErrors ? "bg-destructive/10" : ""}>
         <td className="p-2 text-sm border-b">{student.full_name}</td>
         <td className="p-2 text-sm border-b">{student.level || "-"}</td>
-        <td className="p-2 text-sm border-b">{(student as any).branch || "-"}</td>
+        <td className="p-2 text-sm border-b">{student.branch || "-"}</td>
         <td className="p-2 text-sm border-b">
           <Select
             value={student.schedule_id ? student.schedule_id.toString() : (selectedScheduleId || "__none__")}
@@ -310,10 +337,10 @@ export function StudentImportDialog({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">None</SelectItem>
-              {rowSchedules.map((schedule: any) => (
+              {rowSchedules.map((schedule) => (
                 <SelectItem key={schedule.id} value={schedule.id.toString()}>
                   {schedule.name}
-                  {(schedule.time_slots || []).map((slot: any) => ` • ${formatDay(slot.day_of_week)}`)}
+                  {(schedule.time_slots || []).map((slot) => ` • ${formatDay(slot.day_of_week)}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -418,10 +445,10 @@ export function StudentImportDialog({
                       <SelectTrigger id="default-schedule" className="w-full"><SelectValue placeholder="Optional" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__none__">None</SelectItem>
-                        {availableSchedules.map((schedule: any) => (
+                        {availableSchedules.map((schedule) => (
                           <SelectItem key={schedule.id} value={schedule.id.toString()}>
                             {schedule.name}
-                            {(schedule.time_slots || []).map((slot: any) => {
+                            {(schedule.time_slots || []).map((slot) => {
                               const start = formatTime(slot.start_time)
                               return ` • ${formatDay(slot.day_of_week)} ${start}`
                             })}

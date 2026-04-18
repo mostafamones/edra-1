@@ -8,6 +8,7 @@ export default async function AcademySlugLayout({ children }: { children: React.
 
   return (
     <SidebarProvider
+      className="h-svh min-h-0 overflow-hidden"
       style={
         {
           "--sidebar-width": "calc(var(--spacing) * 64)",
@@ -17,7 +18,7 @@ export default async function AcademySlugLayout({ children }: { children: React.
       defaultOpen={defaultOpen}
     >
       <AppSidebar variant="sidebar" />
-      <SidebarInset className="overflow-auto">{children}</SidebarInset>
+      <SidebarInset className="min-h-0 overflow-y-auto">{children}</SidebarInset>
     </SidebarProvider>
   )
 }
