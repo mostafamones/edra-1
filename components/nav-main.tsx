@@ -15,6 +15,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { IconCirclePlusFilled, IconMail } from "@tabler/icons-react"
+import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { QuickCreateData, withAcademyPath } from "@/components/helpers/sidebar"
 import { useAuth } from "./auth-provider"
@@ -50,10 +51,10 @@ export function NavMain({
               <DropdownMenuContent side="bottom" align="start" className="min-w-48">
                 {QuickCreateData.map((item) => (
                   <DropdownMenuItem key={item.url} asChild>
-                    <a href={withAcademyPath(pathname, item.url)} className="flex items-center gap-2">
+                    <Link href={withAcademyPath(pathname, item.url)} className="flex items-center gap-2">
                       {item.icon}
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -73,10 +74,10 @@ export function NavMain({
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton tooltip={item.title} asChild>
-                <a href={withAcademyPath(pathname, item.url)}>
+                <Link href={withAcademyPath(pathname, item.url)}>
                   {item.icon}
                   <span>{item.title}</span>
-                </a>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

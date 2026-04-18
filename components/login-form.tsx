@@ -13,6 +13,7 @@ import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { IconLoader2 } from "@tabler/icons-react"
 import { Spinner } from "./ui/spinner"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 export function LoginForm({
@@ -111,9 +112,9 @@ export function LoginForm({
           </Button> */}
           <FieldDescription className="text-center">
             Don&apos;t have an account?{" "}
-            <a href="/signup" className="underline underline-offset-4">
+            <Link href="/signup" className="underline underline-offset-4">
               Sign up
-            </a>
+            </Link>
           </FieldDescription>
         </Field>
       </FieldGroup>

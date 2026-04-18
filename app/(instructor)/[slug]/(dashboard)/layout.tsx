@@ -18,9 +18,7 @@ export default async function InstructorLayout({ children }: { children: React.R
       defaultOpen={defaultOpen}
     >
       <AppSidebar variant="sidebar" />
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
+      <SidebarInset className="overflow-auto">{children}</SidebarInset>
     </SidebarProvider>
   )
 }

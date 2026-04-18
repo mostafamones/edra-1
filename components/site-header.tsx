@@ -4,9 +4,16 @@ import { ModeToggle } from "@/components/theme-switch"
 import { Button } from "./ui/button"
 import { IconArrowLeft, IconChevronRight, IconLoader2 } from "@tabler/icons-react"
 import { cn } from "@/lib/utils"
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "./ui/breadcrumb"
+import {
+  Breadcrumb,
+  BreadcrumbItem as BreadcrumbNavItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "./ui/breadcrumb"
 
-export type BreadcrumbItem = {
+export type SiteHeaderCrumb = {
   label: string
   href?: string
   onClick?: () => void
@@ -20,7 +27,7 @@ type SiteHeaderProps = {
   subtitle?: React.ReactNode
   tabs?: React.ReactNode
   back?: () => void
-  breadcrumb?: BreadcrumbItem[]
+  breadcrumb?: SiteHeaderCrumb[]
   loading?: boolean
   className?: string
   separator?: boolean
@@ -67,13 +74,13 @@ export function SiteHeader({
               <BreadcrumbList>
                 {breadcrumb.map((item, index) => (
                   <div className="flex items-center gap-1.5" key={index}>
-                    <BreadcrumbItem>
+                    <BreadcrumbNavItem>
                       {index === breadcrumb.length - 1 ? (
                         <BreadcrumbPage>{item.label}</BreadcrumbPage>
                       ) : (
                         <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
                       )}
-                    </BreadcrumbItem>
+                    </BreadcrumbNavItem>
                     {index < breadcrumb.length - 1 && <BreadcrumbSeparator />}
                   </div>
                 ))}

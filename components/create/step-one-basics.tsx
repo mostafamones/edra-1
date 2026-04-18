@@ -205,7 +205,7 @@ export function StepOneBasics({ initialData, onUpdate }: StepOneBasicsProps) {
             </div>
           </Field>
 
-          <FieldSeparator className="-mb-3 mt-0" variant="card">Technicals</FieldSeparator>
+          <FieldSeparator className="-mb-3 mt-0">Technicals</FieldSeparator>
 
           <Field>
             <FieldLabel htmlFor="slug">Academy Link</FieldLabel>

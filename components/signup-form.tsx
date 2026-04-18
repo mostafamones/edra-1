@@ -12,6 +12,7 @@ import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { IconLoader2 } from "@tabler/icons-react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Spinner } from "./ui/spinner"
 
@@ -164,7 +165,10 @@ export function SignupForm({
             Sign up with GitHub
           </Button> */}
           <FieldDescription className="px-6 text-center">
-            Already have an account? <a href="/login">Sign in</a>
+            Already have an account?{" "}
+            <Link href="/login" className="underline underline-offset-4">
+              Sign in
+            </Link>
           </FieldDescription>
         </Field>
       </FieldGroup>

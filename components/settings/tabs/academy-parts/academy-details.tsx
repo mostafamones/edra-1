@@ -187,7 +187,7 @@ export function AcademyDetails({
             )}
           </Field>
 
-          <FieldSeparator variant="card">Organization</FieldSeparator>
+          <FieldSeparator>Organization</FieldSeparator>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Field>

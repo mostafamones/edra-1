@@ -23,6 +23,7 @@ import {
 import { IconDotsVertical, IconLogout } from "@tabler/icons-react"
 import { UserDropdown, withAcademyPath } from "./helpers/sidebar"
 import { supabase } from "@/lib/supabase"
+import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 
 export function NavUser({
@@ -83,10 +84,10 @@ export function NavUser({
             <DropdownMenuGroup>
               {UserDropdown.items.map((item) => (
                 <DropdownMenuItem key={item.title} asChild>
-                  <a href={withAcademyPath(pathname, item.url)}>
-                    <item.icon />
+                  <Link href={withAcademyPath(pathname, item.url)} className="flex cursor-default items-center gap-2">
+                    <item.icon className="size-4" />
                     {item.title}
-                  </a>
+                  </Link>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuGroup>

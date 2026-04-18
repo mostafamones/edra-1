@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 import {
@@ -34,25 +35,25 @@ export function NavSecondary({
       <SidebarGroupContent>
         <SidebarMenu>
 
-          {/* {open && (
+          {open && (
             <Card className="border-1 mb-5 bg-radial-[at_25%_75%] from-primary/30 to-sidebar pb-20">
-            <CardHeader>
-              <CardTitle>Command Center</CardTitle>
-              <CardAction>
-                <Badge variant="outline">New</Badge>
+              <CardHeader>
+                <CardTitle>Command Center</CardTitle>
+                <CardAction>
+                  <Badge variant="outline">New</Badge>
                 </CardAction>
                 <CardDescription className="text-xs">Try the new command center by using <Kbd>⌘ K</Kbd></CardDescription>
               </CardHeader>
             </Card>
-          )} */}
+          )}
 
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton asChild tooltip={item.title}>
-                <a href={withAcademyPath(pathname, item.url)}>
+                <Link href={withAcademyPath(pathname, item.url)}>
                   {item.icon}
                   <span>{item.title}</span>
-                </a>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

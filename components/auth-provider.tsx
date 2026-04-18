@@ -261,7 +261,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             loadAcademies()
           }
         }
-      } catch { if (mounted) setLoading(false) }
+      } catch (err) {
+        console.error("Auth init failed:", err)
+        if (mounted) setLoading(false)
+      }
     }
     init()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
