@@ -12,6 +12,7 @@ This document is for humans and AI assistants working on **Edra** (academy / ins
 | Area | Purpose |
 |------|---------|
 | [`app/`](app/) | Next.js App Router: layouts, pages, API route handlers under `app/api/`. |
+| [`app/(instructor)/[slug]/layout.tsx`](app/(instructor)/[slug]/layout.tsx) | **All** academy-scoped UI (dashboard + settings) wraps in `SidebarProvider`, `AppSidebar`, and `SidebarInset` so `SiteHeader` / `SidebarTrigger` always have context. |
 | [`components/ui/`](components/ui/) | shadcn/Radix primitives and generic UI only — **no domain-specific API calls**. |
 | [`components/shell/`](components/shell/) | Reusable **page chrome** (settings shell, academy settings shell). Prefer adding new cross-route layout here rather than copying `div` stacks. |
 | [`components/students|sessions|schedules|settings|create/`](components/) | Domain feature components. |
