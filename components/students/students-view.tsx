@@ -25,7 +25,14 @@ import type {
 import { StudentDataTable } from "./student-data-table"
 import { buildFullColumns } from "./columns"
 import { getStudentSearchString } from "./helpers"
+import { StudentsPageToolbar } from "./students-page-toolbar"
 import { useStudentFilters } from "@/lib/store"
+import {
+  PageToolbar,
+  PageToolbarActions,
+  PageToolbarGroup,
+  PageToolbarSearch,
+} from "@/components/shell"
 
 import { DataTableFilterPopover } from "@/components/ui/data-table-filter-popover"
 import { DataTableBulkActions } from "@/components/ui/data-table-bulk-actions"
@@ -44,6 +51,7 @@ const DEFAULT_HIDDEN: VisibilityState = {
 }
 
 export interface StudentsViewProps {
+  academyId: string
   students: StudentWithLevelRating[]
   schedules: ScheduleWithRelations[]
   levels: Level[]
@@ -54,6 +62,7 @@ export interface StudentsViewProps {
 }
 
 export function StudentsView({
+  academyId,
   students,
   schedules,
   levels,
@@ -130,8 +139,20 @@ export function StudentsView({
   const [archiveTarget, setArchiveTarget] = useState<StudentWithLevelRating | null>(null)
   const [bulkAction, setBulkAction] = useState<"delete" | "archive" | null>(null)
   const [isActioning, setIsActioning] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 300)
+
+    return () => window.clearTimeout(timeout)
+  }, [searchQuery])
 
   const filteredData = useMemo(() => {
+    const normalizedQuery = debouncedSearchQuery.trim().toLowerCase()
+
     return students.filter((s) => {
       if (!showArchived && s.is_archived) return false
       if (levelFilter !== "all" && s.level_id?.toString() !== levelFilter) return false
@@ -142,9 +163,13 @@ export function StudentsView({
         )
         if (!hasSchedule) return false
       }
+      if (normalizedQuery.length >= 2) {
+        const searchStr = getStudentSearchString(s, fields)
+        if (!searchStr.includes(normalizedQuery)) return false
+      }
       return true
     })
-  }, [students, levelFilter, groupFilter, scheduleFilter, showArchived])
+  }, [students, levelFilter, groupFilter, scheduleFilter, showArchived, debouncedSearchQuery, fields])
 
   const activeFilterCount = useMemo(() => {
     let count = 0
@@ -168,14 +193,6 @@ export function StudentsView({
       .filter((s) => s.level_id?.toString() === levelFilter)
       .map((s) => ({ id: s.id, name: s.name }))
   }, [schedules, levelFilter])
-
-  const searchFn = useCallback(
-    (student: StudentWithLevelRating, query: string) => {
-      const searchStr = getStudentSearchString(student, fields)
-      return searchStr.includes(query.toLowerCase())
-    },
-    [fields]
-  )
 
   const handleEdit = useCallback(
     (student: StudentWithLevelRating) => {
@@ -271,92 +288,22 @@ export function StudentsView({
 
   return (
     <div className="space-y-4">
-      <DataTableBulkActions
-        selectedCount={selectedCount}
-        onClear={() => setRowSelection({})}
-        label={`${selectedCount} student${selectedCount !== 1 ? "s" : ""} selected`}
-        actions={[
-          {
-            label: "Archive",
-            onClick: () => setBulkAction("archive"),
-            disabled: isActioning,
-            loading: isActioning && bulkAction === "archive",
-          },
-          {
-            label: "Delete",
-            onClick: () => setBulkAction("delete"),
-            disabled: isActioning,
-            loading: isActioning && bulkAction === "delete",
-            variant: "destructive",
-          },
-        ]}
-      />
+      <PageToolbar>
+        <PageToolbarSearch
+          value={searchQuery}
+          onValueChange={setSearchQuery}
+          placeholder="Search all columns..."
+        />
 
-      <ActiveFilterBadges
-        filters={[
-          ...(levelFilter !== "all"
-            ? [
-                {
-                  id: "level",
-                  label: "Level",
-                  value: levels.find((l) => l.id.toString() === levelFilter)?.name || levelFilter,
-                },
-              ]
-            : []),
-          ...(groupFilter !== "all"
-            ? [
-                {
-                  id: "group",
-                  label: "Group",
-                  value: groups.find((g) => g.id.toString() === groupFilter)?.name || groupFilter,
-                },
-              ]
-            : []),
-          ...(scheduleFilter !== "all"
-            ? [
-                {
-                  id: "schedule",
-                  label: "Schedule",
-                  value: schedules.find((s) => s.id.toString() === scheduleFilter)?.name || scheduleFilter,
-                },
-              ]
-            : []),
-          ...(showArchived ? [{ id: "archived", label: "Archived", value: "Shown" }] : []),
-        ]}
-        onRemove={(id) => {
-          if (id === "level") {
-            setLevelFilter("all")
-            setGroupFilter("all")
-          } else if (id === "group") setGroupFilter("all")
-          else if (id === "schedule") setScheduleFilter("all")
-          else if (id === "archived") setShowArchived(false)
-        }}
-        onClearAll={resetFilters}
-      />
-
-      <StudentDataTable
-        data={filteredData}
-        columns={columns}
-        searchable
-        searchPlaceholder="Search all columns..."
-        searchFn={searchFn}
-        paginated
-        defaultPageSize={10}
-        selectable
-        columnVisibility={columnVisibility}
-        onColumnVisibilityChange={setColumnVisibility}
-        columnOrder={columnOrder}
-        onColumnOrderChange={setColumnOrder}
-        rowSelection={rowSelection}
-        onRowSelectionChange={setRowSelection}
-        emptyMessage={
-          levelFilter !== "all" || groupFilter !== "all" || scheduleFilter !== "all"
-            ? "No students match your filters"
-            : "No students yet"
-        }
-        searchRight={
-          <div className="flex items-center gap-2">
-            <DataTableFilterPopover activeFilterCount={activeFilterCount} onClear={resetFilters}>
+        <PageToolbarActions>
+          <PageToolbarGroup>
+            <DataTableFilterPopover
+              activeFilterCount={activeFilterCount}
+              onClear={resetFilters}
+              iconOnly
+              tooltip="Filters"
+              triggerSize="icon"
+            >
               <Select
                 value={levelFilter}
                 onValueChange={(v) => {
@@ -466,8 +413,108 @@ export function StudentsView({
                 const field = fields.find((f) => `field_${f.id}` === id)
                 return field ? field.name : id.replace(/_/g, " ")
               }}
+              iconOnly
+              tooltip="Columns"
+              triggerSize="icon"
             />
-          </div>
+          </PageToolbarGroup>
+
+          <PageToolbarGroup>
+            <StudentsPageToolbar
+              academyId={academyId}
+              levels={levels}
+              groups={groups}
+              fields={fields}
+              schedules={schedules}
+              existingStudentNames={students.map((student) => student.full_name)}
+              onRefresh={refresh}
+            />
+          </PageToolbarGroup>
+        </PageToolbarActions>
+      </PageToolbar>
+
+      <DataTableBulkActions
+        selectedCount={selectedCount}
+        onClear={() => setRowSelection({})}
+        label={`${selectedCount} student${selectedCount !== 1 ? "s" : ""} selected`}
+        actions={[
+          {
+            label: "Archive",
+            onClick: () => setBulkAction("archive"),
+            disabled: isActioning,
+            loading: isActioning && bulkAction === "archive",
+          },
+          {
+            label: "Delete",
+            onClick: () => setBulkAction("delete"),
+            disabled: isActioning,
+            loading: isActioning && bulkAction === "delete",
+            variant: "destructive",
+          },
+        ]}
+      />
+
+      <ActiveFilterBadges
+        filters={[
+          ...(levelFilter !== "all"
+            ? [
+                {
+                  id: "level",
+                  label: "Level",
+                  value: levels.find((l) => l.id.toString() === levelFilter)?.name || levelFilter,
+                },
+              ]
+            : []),
+          ...(groupFilter !== "all"
+            ? [
+                {
+                  id: "group",
+                  label: "Group",
+                  value: groups.find((g) => g.id.toString() === groupFilter)?.name || groupFilter,
+                },
+              ]
+            : []),
+          ...(scheduleFilter !== "all"
+            ? [
+                {
+                  id: "schedule",
+                  label: "Schedule",
+                  value: schedules.find((s) => s.id.toString() === scheduleFilter)?.name || scheduleFilter,
+                },
+              ]
+            : []),
+          ...(showArchived ? [{ id: "archived", label: "Archived", value: "Shown" }] : []),
+        ]}
+        onRemove={(id) => {
+          if (id === "level") {
+            setLevelFilter("all")
+            setGroupFilter("all")
+          } else if (id === "group") setGroupFilter("all")
+          else if (id === "schedule") setScheduleFilter("all")
+          else if (id === "archived") setShowArchived(false)
+        }}
+        onClearAll={resetFilters}
+      />
+
+      <StudentDataTable
+        data={filteredData}
+        columns={columns}
+        paginated
+        defaultPageSize={10}
+        selectable
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={setColumnVisibility}
+        columnOrder={columnOrder}
+        onColumnOrderChange={setColumnOrder}
+        rowSelection={rowSelection}
+        onRowSelectionChange={setRowSelection}
+        emptyMessage={
+          debouncedSearchQuery.trim().length >= 2 ||
+          levelFilter !== "all" ||
+          groupFilter !== "all" ||
+          scheduleFilter !== "all"
+            ? "No students match your search or filters"
+            : "No students yet"
         }
       />
 

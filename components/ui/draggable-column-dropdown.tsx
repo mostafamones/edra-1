@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { IconColumns3, IconGripVertical } from "@tabler/icons-react"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
 import type { ColumnDef, ColumnOrderState } from "@tanstack/react-table"
 import {
   closestCenter,
@@ -106,6 +108,14 @@ export interface DraggableColumnDropdownProps<TData, TValue> {
   fixedEndColumns?: string[]
   /** Custom accessor to rename a column for the label */
   getColumnName?: (columnId: string) => string
+  /** Render a compact icon-only trigger */
+  iconOnly?: boolean
+  /** Tooltip label used for compact triggers */
+  tooltip?: string
+  /** Optional trigger size */
+  triggerSize?: "sm" | "default" | "icon" | "icon-sm"
+  /** Optional trigger class name */
+  triggerClassName?: string
 }
 
 export function DraggableColumnDropdown<TData, TValue>({
@@ -117,6 +127,10 @@ export function DraggableColumnDropdown<TData, TValue>({
   fixedStartColumns = [],
   fixedEndColumns = [],
   getColumnName,
+  iconOnly = false,
+  tooltip,
+  triggerSize = "default",
+  triggerClassName,
 }: DraggableColumnDropdownProps<TData, TValue>) {
   // Build toggleable columns list — exclude fixed columns
   const toggleableColumns = columns
@@ -163,14 +177,38 @@ export function DraggableColumnDropdown<TData, TValue>({
     }
   }
 
+  const trigger = (
+    <Button
+      variant="outline"
+      size={iconOnly ? triggerSize : triggerSize === "icon-sm" || triggerSize === "icon" ? "default" : triggerSize}
+      className={cn(
+        "shrink-0 text-sm",
+        !iconOnly && "h-10 gap-2",
+        triggerClassName
+      )}
+    >
+      <IconColumns3 className="size-4" />
+      {!iconOnly && "Columns"}
+      {iconOnly && <span className="sr-only">{tooltip ?? "Columns"}</span>}
+    </Button>
+  )
+
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="h-10 gap-2 text-sm shrink-0">
-          <IconColumns3 className="size-4" />
-          Columns
-        </Button>
-      </DropdownMenuTrigger>
+      {iconOnly && tooltip ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              {trigger}
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent>{tooltip}</TooltipContent>
+        </Tooltip>
+      ) : (
+        <DropdownMenuTrigger asChild>
+          {trigger}
+        </DropdownMenuTrigger>
+      )}
       <DropdownMenuContent align="end" className="w-60 max-h-[400px] overflow-y-auto overflow-x-hidden">
         <DropdownMenuLabel className="text-xs font-semibold py-1">Toggle & reorder columns</DropdownMenuLabel>
         <DropdownMenuSeparator className="mb-0" />

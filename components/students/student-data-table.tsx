@@ -15,7 +15,6 @@ import {
   RowSelectionState,
 } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -32,14 +31,12 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
-  IconSearch,
   IconUsers,
   IconChevronLeft,
   IconChevronRight,
-  IconX,
 } from "@tabler/icons-react"
 import type { StudentWithLevelRating } from "@/lib/types"
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
+import { PageToolbarSearch } from "@/components/shell"
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -59,8 +56,6 @@ export interface StudentDataTableProps<TRow extends StudentWithLevelRating = Stu
   rowSelection?: RowSelectionState
   onRowSelectionChange?: (selection: RowSelectionState) => void
   emptyMessage?: string
-  toolbar?: React.ReactNode
-  searchRight?: React.ReactNode
 }
 
 // ─── Component ───────────────────────────────────────────────
@@ -81,8 +76,6 @@ export function StudentDataTable<TRow extends StudentWithLevelRating = StudentWi
   rowSelection: externalSelection,
   onRowSelectionChange,
   emptyMessage = "No students found",
-  toolbar,
-  searchRight,
 }: StudentDataTableProps<TRow>) {
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
@@ -169,28 +162,13 @@ export function StudentDataTable<TRow extends StudentWithLevelRating = StudentWi
   return (
     <div className="space-y-3">
       {searchable && (
-        <div className="flex flex-row items-center gap-3">
-          <InputGroup className="w-full h-10">
-            <InputGroupInput
-              placeholder={searchPlaceholder}
-              value={searchQuery}
-              className="text-lg"
-              onChange={(e) => handleSearchChange(e.target.value)}
-            />
-            <InputGroupAddon align="inline-end">
-              <Button variant="ghost" size="icon-xs" onClick={() => handleSearchChange("")}>
-                <IconX className="size-4" />
-              </Button>
-            </InputGroupAddon>
-            <InputGroupAddon align="inline-start">
-              <IconSearch className="size-4" />
-            </InputGroupAddon>
-          </InputGroup>
-          {searchRight}
-        </div>
+        <PageToolbarSearch
+          value={searchQuery}
+          onValueChange={handleSearchChange}
+          placeholder={searchPlaceholder}
+          inputClassName="text-lg"
+        />
       )}
-
-      {toolbar}
 
       <div className="rounded-xl border bg-card overflow-x-auto">
         <Table>

@@ -27,6 +27,7 @@ This document is for humans and AI assistants working on **Edra** (academy / ins
 4. **Styling** — Tailwind + `cn()` from [`lib/utils.ts`](lib/utils.ts). Icons: **Tabler** (`@tabler/icons-react`).
 5. **Minimal `div` policy** — Prefer `Card`, `ScrollArea`, `Separator`, `Empty*`, sidebar slots, and `Field` / `Form` for structure. shadcn internals may still use `div`; do not rewrite them. Avoid new arbitrary flex wrappers when a shell or existing primitive fits.
 6. **Site header breadcrumbs** — The prop type for crumbs is **`SiteHeaderCrumb`** (exported from [`components/site-header.tsx`](components/site-header.tsx)), not the shadcn `BreadcrumbItem` list primitive.
+7. **Page toolbars** — Route-specific search, filters, columns, and primary page actions should live in a reusable page toolbar near the page content, not in `SiteHeader.actions`. Prefer the shared toolbar primitives in [`components/shell/page-toolbar.tsx`](components/shell/page-toolbar.tsx) and reserve `SiteHeader.actions` for controls that truly belong in the shared header chrome.
 
 ## Data boundaries
 

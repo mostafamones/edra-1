@@ -1,9 +1,8 @@
 "use client"
 
-import { useCallback, useMemo } from "react"
+import { useCallback } from "react"
 import { SiteHeader } from "@/components/site-header"
 import { StudentsView } from "./students-view"
-import { StudentsPageToolbar } from "./students-page-toolbar"
 import { DataSkeleton } from "@/components/ui/data-skeleton"
 import {
   useStudents,
@@ -51,11 +50,6 @@ export function StudentsPageContent({ academyId }: { academyId: string }) {
   const groupsArr = groups ?? []
   const fieldsArr = fieldsRaw ?? []
 
-  const activeFields = useMemo(
-    () => fieldsArr.filter((f) => f.is_active !== false),
-    [fieldsArr]
-  )
-
   if (loading) {
     return (
       <div className="flex flex-col h-[100dvh] overflow-hidden">
@@ -75,22 +69,10 @@ export function StudentsPageContent({ academyId }: { academyId: string }) {
 
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden">
-      <SiteHeader
-        title="Students"
-        actions={
-          <StudentsPageToolbar
-            academyId={academyId}
-            levels={levelsArr}
-            groups={groupsArr}
-            fields={activeFields}
-            schedules={schedulesArr}
-            existingStudentNames={studentsArr.map((s) => s.full_name)}
-            onRefresh={refreshAll}
-          />
-        }
-      />
+      <SiteHeader title="Students" />
       <main className="flex-1 overflow-y-auto py-4 px-8 lg:px-6">
         <StudentsView
+          academyId={academyId}
           students={studentsArr}
           schedules={schedulesArr}
           levels={levelsArr}

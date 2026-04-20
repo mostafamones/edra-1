@@ -1,8 +1,7 @@
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { ModeToggle } from "@/components/theme-switch"
 import { Button } from "./ui/button"
-import { IconArrowLeft, IconChevronRight, IconLoader2 } from "@tabler/icons-react"
+import { IconArrowLeft, IconLoader2 } from "@tabler/icons-react"
 import { cn } from "@/lib/utils"
 import {
   Breadcrumb,
@@ -50,7 +49,7 @@ export function SiteHeader({
     <header className={cn(
       "flex h-(--header-height) w-full items-center gap-2 border-b border-border mb-6", separator && "border-b", className
     )}>
-      <div className="flex w-full justify-between items-center gap-1 px-4 lg:gap-2">
+      <div className="flex w-full items-center gap-1 px-4 lg:gap-2">
         {trigger && (
           <>
             <SidebarTrigger />
@@ -61,7 +60,7 @@ export function SiteHeader({
           </>
         )}
         
-        <div className="flex font-[Outfit] gap-2 items-center">
+        <div className="flex min-w-0 font-[Outfit] gap-2 items-center">
           {back && <>
             <Button size="icon-sm" variant="ghost" onClick={back}>
               <IconArrowLeft className="size-4" />
@@ -98,18 +97,22 @@ export function SiteHeader({
           </div>}
         </div>
 
-        <div className="ml-auto flex gap-2">
-          {tabs && <div className="flex items-center p-1 gap-3 bg-card rounded-xl drop-shadow-md">
-            {tabs}
-          </div>}
-          <div className={cn(
-            "flex items-center p-1 bg-card rounded-xl drop-shadow-md",
-            !tabs && "ml-auto"
-          )}>
-            {/* ModeToggle hidden – dark mode forced globally */}
-            {actions}
+        {(tabs || actions) && (
+          <div className="ml-auto flex gap-2">
+            {tabs && <div className="flex items-center p-1 gap-3 bg-card rounded-xl drop-shadow-md">
+              {tabs}
+            </div>}
+            {actions && (
+              <div className={cn(
+                "flex items-center p-1 bg-card rounded-xl drop-shadow-md",
+                !tabs && "ml-auto"
+              )}>
+                {/* ModeToggle hidden – dark mode forced globally */}
+                {actions}
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
     </header>
   )

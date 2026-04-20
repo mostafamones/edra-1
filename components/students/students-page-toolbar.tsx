@@ -18,6 +18,8 @@ export interface StudentsPageToolbarProps {
   existingStudentNames: string[]
   /** When set (e.g. from use-data hooks), used for Refresh + after import. Defaults to router.refresh(). */
   onRefresh?: () => void | Promise<void>
+  buttonVariant?: "ghost" | "outline"
+  buttonSize?: "default" | "lg"
 }
 
 export function StudentsPageToolbar({
@@ -28,6 +30,8 @@ export function StudentsPageToolbar({
   schedules,
   existingStudentNames,
   onRefresh,
+  buttonVariant = "outline",
+  buttonSize = "default",
 }: StudentsPageToolbarProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -43,13 +47,19 @@ export function StudentsPageToolbar({
 
   return (
     <>
-      <Refresh func={refresh} variant="ghost" />
-      <Button variant="ghost" className="gap-1.5" onClick={() => setImportOpen(true)}>
+      <Refresh func={refresh} variant={buttonVariant} size="icon" />
+      <Button
+        variant={buttonVariant}
+        size={buttonSize}
+        className="gap-1.5"
+        onClick={() => setImportOpen(true)}
+      >
         <IconUpload className="size-4" />
         Import
       </Button>
       <Button
-        variant="ghost"
+        variant={buttonVariant}
+        size={buttonSize}
         className="gap-1.5"
         onClick={() => router.push(withAcademyPath(pathname, "/students/create"))}
       >
