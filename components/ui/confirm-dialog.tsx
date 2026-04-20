@@ -161,5 +161,3 @@ export function ConfirmDialog({
     </AlertDialog>
   )
 }
-
-export default ConfirmDialog

@@ -17,7 +17,7 @@ import { errors } from "@/lib/api/response";
  * - Original is saved as {userId}/original.{ext}
  * - Cropped is saved as {userId}/cropped.{ext}
  */
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
  * Removes the avatar from the instructor's profile.
  * Note: Does not delete the storage files (they'll remain orphaned).
  */
-export async function DELETE(request: NextRequest) {
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -143,7 +143,7 @@ export async function DELETE(request: NextRequest) {
  *
  * Returns the original avatar image for re-crop.
  */
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();

@@ -1,7 +1,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { NextResponse } from "next/server"
+import { requireAuth } from "@/lib/api/guard"
+import { getErrorMessage } from "@/lib/get-error-message"
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<NextResponse> {
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.response
+
   try {
     const body = await req.json()
     const { title, parts } = body
@@ -65,17 +70,16 @@ export async function POST(req: Request) {
     // 3. Return the generated description
     return NextResponse.json({ description: responseText.trim() }, { status: 200 })
 
-  } catch (error: any) {
-    // 4. Error handling
+  } catch (error: unknown) {
     console.error("Gemini API Error:", error)
 
-    // Check for specific Google AI errors if possible
-    if (error.message?.includes("API key not valid")) {
+    const message = getErrorMessage(error)
+    if (message.includes("API key not valid")) {
       return NextResponse.json({ error: "Invalid API configuration." }, { status: 500 })
     }
 
     return NextResponse.json(
-      { error: `Failed to generate description. Please try again later. Details: ${error.message}` },
+      { error: `Failed to generate description. Please try again later. Details: ${message}` },
       { status: 500 }
     )
   }

@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import { apiFetch, ApiError } from '@/lib/api/client'
+import { getErrorMessage } from '@/lib/get-error-message'
 
 export interface ProfileData {
   id: string
@@ -31,16 +33,13 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
 
     set({ loading: true, error: null })
     try {
-      const response = await fetch('/api/profile')
-      if (response.ok) {
-        const data = await response.json()
-        set({ profile: data, loading: false })
-      } else {
-        throw new Error('Failed to load profile')
-      }
-    } catch (error: any) {
-      set({ error: error.message, loading: false })
-      console.error('Error loading profile:', error)
+      const profile = await apiFetch<ProfileData>('/api/profile')
+      set({ profile, loading: false })
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : getErrorMessage(err) || 'Failed to load profile'
+      set({ error: message, loading: false })
+      console.error('Error loading profile:', err)
     }
   },
   updateProfile: (data) => {

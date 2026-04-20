@@ -29,6 +29,9 @@ import { format } from "date-fns"
 import { toast } from "sonner"
 import { IconCalendarEvent, IconPlus, IconTrash } from "@tabler/icons-react"
 import type { Group, Level, ScheduleTimeSlot, ScheduleWithRelations } from "@/lib/types"
+import { api } from "@/lib/api/client"
+import { invalidateSchedules } from "@/lib/hooks/use-data"
+import { getErrorMessage } from "@/lib/get-error-message"
 
 const DAYS_OF_WEEK = [
   { value: 0, label: "Sunday" },
@@ -258,34 +261,22 @@ export function ScheduleSheet({
       }
 
       if (schedule) {
-        const res = await fetch(`/api/schedules/${schedule.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-        if (!res.ok) {
-          const errBody = await res.json().catch(() => null)
-          throw new Error(errBody?.details || "Failed to update")
-        }
+        await api.put(`/api/schedules/${schedule.id}`, payload)
         toast.success("Schedule updated")
       } else {
-        const res = await fetch("/api/schedules", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-        if (!res.ok) {
-          const errBody = await res.json().catch(() => null)
-          throw new Error(errBody?.details || "Failed to create")
-        }
+        await api.post("/api/schedules", payload)
         toast.success("Schedule created")
       }
 
+      invalidateSchedules()
       onSuccess?.()
       onOpenChange(false)
-    } catch (err: any) {
+    } catch (err) {
       console.error(err)
-      toast.error(err?.message || (schedule ? "Could not update schedule" : "Could not create schedule"))
+      toast.error(
+        getErrorMessage(err) ||
+          (schedule ? "Could not update schedule" : "Could not create schedule")
+      )
     } finally {
       setLoading(false)
     }

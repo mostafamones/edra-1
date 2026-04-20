@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { getErrorMessage } from "@/lib/get-error-message";
 
 // ============================================================================
 // TYPES
@@ -156,9 +157,9 @@ export function useQuery<T>(
           setData(result as T);
           queryCache.set(cacheKey, { data: result, timestamp: Date.now() });
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (latestKey.current === cacheKey) {
-          setError(err?.message || "Failed to fetch data");
+          setError(getErrorMessage(err) || "Failed to fetch data");
         }
       } finally {
         if (latestKey.current === cacheKey) {

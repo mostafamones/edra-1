@@ -1,6 +1,26 @@
 "use client";
 
 import { useQuery, invalidateCache, type UseQueryOptions } from "./use-query";
+import { apiFetch } from "@/lib/api/client";
+
+/** Request slice of a paginated list. Hooks that accept this opt their route into paginated mode. */
+export interface PaginationInput {
+  page?: number;
+  limit?: number;
+}
+
+function paginationQuery(pagination: PaginationInput | undefined): string {
+  if (!pagination) return "";
+  const parts: string[] = [];
+  if (pagination.page != null) parts.push(`page=${pagination.page}`);
+  if (pagination.limit != null) parts.push(`limit=${pagination.limit}`);
+  return parts.length ? `&${parts.join("&")}` : "";
+}
+
+function paginationKey(pagination: PaginationInput | undefined): string {
+  if (!pagination) return "";
+  return `:p=${pagination.page ?? ""}:l=${pagination.limit ?? ""}`;
+}
 import type {
   Instructor,
   ScheduleWithRelations,
@@ -18,14 +38,7 @@ export * from "./use-attendance";
 // HELPER
 // ============================================================================
 
-async function fetchJSON<T>(url: string): Promise<T> {
-  const res = await fetch(url);
-  if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    throw new Error(body?.error || `Request failed (${res.status})`);
-  }
-  return res.json();
-}
+const fetchJSON = apiFetch;
 
 // ============================================================================
 // useStudents
@@ -34,27 +47,36 @@ async function fetchJSON<T>(url: string): Promise<T> {
 export interface UseStudentsOptions extends UseQueryOptions<StudentWithLevelRating[]> {
   /** Pre-filter fields returned alongside students */
   includeFields?: boolean;
+  /** Opt into server pagination (`?page`, `?limit`); the hook still returns just `data[]`. */
+  pagination?: PaginationInput;
 }
 
 /**
- * Fetch all students for an academy.
+ * Fetch students for an academy.
  *
- * @example
- * ```tsx
- * const { data: students, loading, refresh } = useStudents(academyId);
- * ```
+ * Pass `options.pagination` to request a bounded slice; otherwise the full list
+ * is returned for backward-compat.
  */
 export function useStudents(
   academyId: string | null,
   options: UseStudentsOptions = {}
 ) {
+  const { pagination, ...queryOpts } = options;
+  const query = paginationQuery(pagination);
+  const key = academyId
+    ? `students:${academyId}${paginationKey(pagination)}`
+    : null;
+
   return useQuery<StudentWithLevelRating[]>(
-    academyId ? `students:${academyId}` : null,
-    () => fetchJSON<StudentWithLevelRating[]>(`/api/students?academyId=${academyId}`),
+    key,
+    () =>
+      fetchJSON<StudentWithLevelRating[]>(
+        `/api/students?academyId=${academyId}${query}`
+      ),
     {
       enabled: !!academyId,
-      deps: [academyId],
-      ...options,
+      deps: [academyId, pagination?.page, pagination?.limit],
+      ...queryOpts,
     }
   );
 }
@@ -112,17 +134,30 @@ export function invalidateInstructors() {
  * const { data: schedules, loading } = useSchedules(academyId);
  * ```
  */
+export interface UseSchedulesOptions extends UseQueryOptions<ScheduleWithRelations[]> {
+  pagination?: PaginationInput;
+}
+
 export function useSchedules(
   academyId: string | null,
-  options: UseQueryOptions<ScheduleWithRelations[]> = {}
+  options: UseSchedulesOptions = {}
 ) {
+  const { pagination, ...queryOpts } = options;
+  const query = paginationQuery(pagination);
+  const key = academyId
+    ? `schedules:${academyId}${paginationKey(pagination)}`
+    : null;
+
   return useQuery<ScheduleWithRelations[]>(
-    academyId ? `schedules:${academyId}` : null,
-    () => fetchJSON<ScheduleWithRelations[]>(`/api/schedules?academyId=${academyId}`),
+    key,
+    () =>
+      fetchJSON<ScheduleWithRelations[]>(
+        `/api/schedules?academyId=${academyId}${query}`
+      ),
     {
       enabled: !!academyId,
-      deps: [academyId],
-      ...options,
+      deps: [academyId, pagination?.page, pagination?.limit],
+      ...queryOpts,
     }
   );
 }
@@ -218,6 +253,7 @@ export interface UseSessionsOptions extends UseQueryOptions<SessionWithSchedule[
   startDate?: string;
   /** Override end date (ISO string, default: 90 days from now) */
   endDate?: string;
+  pagination?: PaginationInput;
 }
 
 /**
@@ -235,15 +271,16 @@ export function useSessions(
   academyId: string | null,
   options: UseSessionsOptions = {}
 ) {
-  const { startDate, endDate, ...queryOpts } = options;
+  const { startDate, endDate, pagination, ...queryOpts } = options;
 
   // Build the URL — the API defaults to last-30 / next-90 if no params
   let url = `/api/sessions?academyId=${academyId}`;
   if (startDate) url += `&startDate=${startDate}`;
   if (endDate) url += `&endDate=${endDate}`;
+  url += paginationQuery(pagination);
 
   const cacheKey = academyId
-    ? `sessions:${academyId}:${startDate || ""}:${endDate || ""}`
+    ? `sessions:${academyId}:${startDate || ""}:${endDate || ""}${paginationKey(pagination)}`
     : null;
 
   return useQuery<SessionWithSchedule[]>(
@@ -251,7 +288,7 @@ export function useSessions(
     () => fetchJSON<SessionWithSchedule[]>(url),
     {
       enabled: !!academyId,
-      deps: [academyId, startDate, endDate],
+      deps: [academyId, startDate, endDate, pagination?.page, pagination?.limit],
       ...queryOpts,
     }
   );

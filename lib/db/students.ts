@@ -1,6 +1,7 @@
 import { getServiceSupabase } from '../supabase';
 import { Student, StudentInsert, StudentUpdate, StudentWithLevelRating } from '../types';
 import { saveStudentFieldValues } from './fields';
+import type { ListPagination, PaginatedResult } from './pagination';
 
 const supabase: any = getServiceSupabase();
 
@@ -20,14 +21,43 @@ const DETAIL_SELECT = `
   student_field_values(*)
 `;
 
-export async function getStudents(academyId: string) {
-  const { data, error } = await supabase
+/**
+ * Fetch students for an academy.
+ *
+ * When `pagination` is provided, a bounded slice and a total count are returned
+ * (slightly more expensive due to the exact count query). When omitted, the
+ * full list is returned for backward-compat with existing callers.
+ */
+export async function getStudents(academyId: string): Promise<StudentWithLevelRating[]>;
+export async function getStudents(
+  academyId: string,
+  pagination: ListPagination
+): Promise<PaginatedResult<StudentWithLevelRating>>;
+export async function getStudents(
+  academyId: string,
+  pagination?: ListPagination
+): Promise<StudentWithLevelRating[] | PaginatedResult<StudentWithLevelRating>> {
+  let query = supabase
     .from('students')
-    .select(LIST_SELECT)
+    .select(LIST_SELECT, pagination ? { count: 'exact' } : {})
     .eq('academy_id', academyId)
     .order('full_name');
 
+  if (pagination) {
+    const from = (pagination.page - 1) * pagination.limit;
+    const to = from + pagination.limit - 1;
+    query = query.range(from, to);
+  }
+
+  const { data, error, count } = await query;
+
   if (error) throw error;
+  if (pagination) {
+    return {
+      data: (data ?? []) as StudentWithLevelRating[],
+      total: count ?? 0,
+    };
+  }
   return data as StudentWithLevelRating[];
 }
 

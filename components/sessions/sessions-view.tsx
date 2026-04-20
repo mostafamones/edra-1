@@ -38,6 +38,8 @@ import { useSessionFilters } from "@/lib/store"
 import { encodeSessionId } from "@/lib/hashid"
 import type { Group, Level, ScheduleWithRelations, SessionWithSchedule } from "@/lib/types"
 import { useGroups, useLevels, useSchedules, useSessions } from "@/lib/hooks/use-data"
+import * as sessionMutations from "@/lib/hooks/mutations"
+import { getErrorMessage } from "@/lib/get-error-message"
 
 import { buildSessionColumns } from "./session-columns"
 import { SessionDataTable } from "./session-data-table"
@@ -231,16 +233,12 @@ export function SessionsView({ academyId }: SessionsViewProps) {
     if (!deleteTarget) return
     setIsActioning(true)
     try {
-      const res = await fetch(`/api/sessions/${deleteTarget.id}`, { method: "DELETE" })
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => null)
-        throw new Error(errBody?.error || errBody?.details || "Failed to delete session")
-      }
+      await sessionMutations.deleteSession(deleteTarget.id)
       toast.success("Session deleted")
       setDeleteTarget(null)
       refreshSessions()
-    } catch (err: any) {
-      toast.error(err?.message || "Could not delete session")
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "Could not delete session")
     } finally {
       setIsActioning(false)
     }
@@ -251,20 +249,15 @@ export function SessionsView({ academyId }: SessionsViewProps) {
     setIsActioning(true)
     try {
       const isArchived = archiveTarget.status === "archived"
-      const res = await fetch(`/api/sessions/${archiveTarget.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: isArchived ? "live" : "archived" }),
-      })
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => null)
-        throw new Error(errBody?.error || errBody?.details || "Failed to update session")
-      }
+      await sessionMutations.updateSessionStatus(
+        archiveTarget.id,
+        isArchived ? "live" : "archived"
+      )
       toast.success(isArchived ? "Unarchived" : "Archived")
       setArchiveTarget(null)
       refreshSessions()
-    } catch (err: any) {
-      toast.error(err?.message || "Could not update session")
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "Could not update session")
     } finally {
       setIsActioning(false)
     }
@@ -274,21 +267,13 @@ export function SessionsView({ academyId }: SessionsViewProps) {
     if (selectedSessionIds.length === 0) return
     setIsActioning(true)
     try {
-      await Promise.all(
-        selectedSessionIds.map((id) =>
-          fetch(`/api/sessions/${id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: "archived" }),
-          })
-        )
-      )
+      await sessionMutations.bulkArchiveSessions(selectedSessionIds)
       toast.success(`Archived ${selectedSessionIds.length} session(s)`)
       setBulkArchiveOpen(false)
       setRowSelection({})
       refreshSessions()
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to archive sessions")
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "Failed to archive sessions")
     } finally {
       setIsActioning(false)
     }

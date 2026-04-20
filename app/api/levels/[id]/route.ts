@@ -1,56 +1,70 @@
 import { getLevel, updateLevel, deleteLevel } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAcademyAccessForRow } from "@/lib/api/guard";
+import { errors } from "@/lib/api/response";
+import { validateBody } from "@/lib/api/validation";
+import { updateLevelSchema } from "@/lib/schemas";
+import { getErrorMessage } from "@/lib/get-error-message";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+): Promise<NextResponse> {
+  const { id: idString } = await params;
+  const id = Number(idString);
+  if (!Number.isFinite(id)) return errors.badRequest("Invalid id");
+
+  const auth = await requireAcademyAccessForRow("levels", id);
+  if (!auth.ok) return auth.response;
+
   try {
-    const { id } = await params;
-    const level = await getLevel(Number(id));
+    const level = await getLevel(id);
     return NextResponse.json(level);
   } catch (error) {
     console.error("Error fetching level:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch level" },
-      { status: 500 }
-    );
+    return errors.internal("Failed to fetch level");
   }
 }
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+): Promise<NextResponse> {
+  const { id: idString } = await params;
+  const id = Number(idString);
+  if (!Number.isFinite(id)) return errors.badRequest("Invalid id");
+
+  const auth = await requireAcademyAccessForRow("levels", id);
+  if (!auth.ok) return auth.response;
+
+  const parsed = await validateBody(request, updateLevelSchema);
+  if (!parsed.success) return parsed.response;
+
   try {
-    const { id } = await params;
-    const body = await request.json();
-    const level = await updateLevel(Number(id), body);
+    const level = await updateLevel(id, parsed.data);
     return NextResponse.json(level);
   } catch (error) {
     console.error("Error updating level:", error);
-    const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return errors.internal(getErrorMessage(error) || "Failed to update level");
   }
 }
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+): Promise<NextResponse> {
+  const { id: idString } = await params;
+  const id = Number(idString);
+  if (!Number.isFinite(id)) return errors.badRequest("Invalid id");
+
+  const auth = await requireAcademyAccessForRow("levels", id);
+  if (!auth.ok) return auth.response;
+
   try {
-    const { id } = await params;
-    await deleteLevel(Number(id));
+    await deleteLevel(id);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting level:", error);
-    return NextResponse.json(
-      { error: "Failed to delete level" },
-      { status: 500 }
-    );
+    return errors.internal("Failed to delete level");
   }
 }
-

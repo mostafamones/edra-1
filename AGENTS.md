@@ -35,6 +35,46 @@ This document is for humans and AI assistants working on **Edra** (academy / ins
 - **Auth** — Client academy/session context: [`components/auth-provider.tsx`](components/auth-provider.tsx). Server-side user access: [`lib/user-server.ts`](lib/user-server.ts) (and related `lib/` modules).
 - **API access** — Prefer centralizing `fetch` to small modules or hooks under `lib/` as the codebase grows; surface failures with **Sonner** toasts where appropriate. Use [`getErrorMessage`](lib/get-error-message.ts) in `catch (err: unknown)` instead of `catch (err: any)`.
 
+## API route handlers (canonical pattern)
+
+Every mutation handler under `app/api/**/route.ts` MUST:
+
+1. **Guard auth + academy ownership** using helpers from [`lib/api/guard.ts`](lib/api/guard.ts):
+   - `requireAcademyAccess(academyId)` when the request carries `academyId` in body or query.
+   - `requireAcademyAccessForRow(table, id)` on `[id]` routes that do not pass `academyId` — it fetches the row and verifies ownership.
+   - `requireAuth()` only for endpoints that are user-scoped, not academy-scoped (e.g. `/api/profile`, `/api/academy/me`, `/api/invites/accept`).
+2. **Validate inputs** using shared Zod schemas from [`lib/schemas/index.ts`](lib/schemas/index.ts) via `validateBody(request, schema)` / `validateQuery(request, schema)` from [`lib/api/validation.ts`](lib/api/validation.ts). Do not redefine schemas inside handlers — add them to `lib/schemas` so forms reuse them.
+3. **Return errors** using helpers from [`lib/api/response.ts`](lib/api/response.ts): `errors.badRequest(…)`, `errors.unauthorized()`, `errors.forbidden(…)`, `errors.notFound(…)`, `errors.validationError(…)`, `errors.internal(…)`.
+4. **Preserve success shapes** — `lib/hooks/use-data.ts` expects raw arrays/objects (not wrapped). Only error responses use the `{ success: false, error }` envelope.
+
+Canonical skeleton:
+
+```ts
+import { requireAcademyAccess } from "@/lib/api/guard";
+import { validateBody } from "@/lib/api/validation";
+import { errors } from "@/lib/api/response";
+import { createStudentSchema } from "@/lib/schemas";
+
+export async function POST(request: NextRequest) {
+  const parsed = await validateBody(request, createStudentSchema);
+  if (!parsed.success) return parsed.response;
+
+  const auth = await requireAcademyAccess(parsed.data.academy_id);
+  if (!auth.ok) return auth.response;
+
+  // use auth.ctx.academyId as the source of truth — never trust body academy_id alone
+}
+```
+
+## Loading & error boundaries
+
+Every major route segment (`app/loading.tsx`, `app/error.tsx`, `(dashboard)/loading.tsx`, `settings/loading.tsx`, `settings/error.tsx`, etc.) must have a `loading.tsx` skeleton and a client `error.tsx` that calls `getErrorMessage(error)` and exposes a `reset()` button.
+
+## Forms
+
+- Prefer React Hook Form + Zod via `zodResolver(schemaFromLibSchemas)` so the client validates against the same schema the server enforces.
+- After a successful create, reset the form to defaults (`form.reset(defaultValues)` for RHF, or `setState(initialFormData)` for controlled forms). On edit, do NOT reset — leave the current values so the user can continue editing.
+
 ## How to add a new component
 
 1. Choose **domain folder** (`components/students/`, etc.) or **`components/shell/`** if it is route chrome shared by multiple areas.
@@ -61,7 +101,7 @@ Track consolidation work here; tick when done or not applicable.
 - [ ] Shared **academy row chrome** between [`field-rows.tsx`](components/shared/academy/field-rows.tsx) and [`level-rows.tsx`](components/shared/academy/level-rows.tsx) (menus, tooltips, DnD wrappers).
 - [ ] Shared **list / data-table toolbar** pattern across students, sessions, and schedules toolbars.
 - [ ] Single **form dialect**: align [`app-input.tsx`](components/ui/app-input.tsx) usage with `Form` + `Field` where possible.
-- [ ] Central **`lib/api` or hooks** for repeated `fetch` in domain components.
+- [x] Central **`lib/api` or hooks** for repeated `fetch` in domain components. Guard/validation helpers live under `lib/api/`; shared mutation schemas under `lib/schemas/`. Client hooks still raw-shape JSON — migrate to typed helpers opportunistically.
 
 ## CI
 

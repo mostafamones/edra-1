@@ -62,7 +62,7 @@ function toDateString(date: Date): string {
 export function ScheduleCalendarView({ rows }: { rows: ScheduleRow[] }) {
   const router = useRouter()
   const scrollRef = useRef<HTMLDivElement>(null)
-  const next5 = useMemo(getNext5Days, [])
+  const next5 = useMemo(() => getNext5Days(), [])
   const next5Strings = useMemo(() => next5.map(toDateString), [next5])
 
   const activeRows = useMemo(() => rows.filter((r) => r.schedule.is_active !== false), [rows])

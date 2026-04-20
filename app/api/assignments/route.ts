@@ -1,55 +1,46 @@
-import { getAssignments, getCourseAssignments, getAssignment, createAssignment, updateAssignment, deleteAssignment } from "@/lib/db/assignments";
+import { getAssignments, getCourseAssignments, createAssignment } from "@/lib/db/assignments";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAcademyAccess } from "@/lib/api/guard";
+import { errors } from "@/lib/api/response";
+import { validateBody } from "@/lib/api/validation";
+import { createAssignmentSchema } from "@/lib/schemas";
+import { getErrorMessage } from "@/lib/get-error-message";
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const academyId = request.nextUrl.searchParams.get("academyId");
+  const courseId = request.nextUrl.searchParams.get("courseId");
+  const auth = await requireAcademyAccess(academyId);
+  if (!auth.ok) return auth.response;
+
   try {
-    const academyId = request.nextUrl.searchParams.get("academyId");
-    const courseId = request.nextUrl.searchParams.get("courseId");
-
-    if (!academyId) {
-      return NextResponse.json(
-        { error: "Academy ID is required" },
-        { status: 400 }
-      );
-    }
-
     if (courseId) {
-      // Get specific course assignments
       const assignments = await getCourseAssignments(parseInt(courseId, 10));
       return NextResponse.json(assignments);
     }
-
-    // Get all academy assignments
-    const assignments = await getAssignments(academyId);
+    const assignments = await getAssignments(auth.ctx.academyId);
     return NextResponse.json(assignments);
   } catch (error) {
     console.error("Error fetching assignments:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch assignments" },
-      { status: 500 }
-    );
+    return errors.internal("Failed to fetch assignments");
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const parsed = await validateBody(request, createAssignmentSchema);
+  if (!parsed.success) return parsed.response;
+
+  const auth = await requireAcademyAccess(parsed.data.academy_id);
+  if (!auth.ok) return auth.response;
+
   try {
-    const body = await request.json();
-    const { academy_id, parts, ...assignmentData } = body;
-
-    if (!academy_id) {
-      return NextResponse.json(
-        { error: "Academy ID is required" },
-        { status: 400 }
-      );
-    }
-
-    const assignment = await createAssignment(assignmentData, parts || []);
+    const { parts, ...assignmentData } = parsed.data;
+    const assignment = await createAssignment(
+      { ...assignmentData, academy_id: auth.ctx.academyId } as never,
+      (parts || []) as never
+    );
     return NextResponse.json(assignment, { status: 201 });
   } catch (error) {
     console.error("Error creating assignment:", error);
-    return NextResponse.json(
-      { error: (error as any)?.message || "Failed to create assignment" },
-      { status: 500 }
-    );
+    return errors.internal(getErrorMessage(error) || "Failed to create assignment");
   }
 }

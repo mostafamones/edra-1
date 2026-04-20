@@ -1,64 +1,70 @@
 import { getSession, updateSession, deleteSession } from "@/lib/db/sessions";
-import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAcademyAccessForRow } from "@/lib/api/guard";
+import { errors } from "@/lib/api/response";
+import { validateBody } from "@/lib/api/validation";
+import { updateSessionSchema } from "@/lib/schemas";
+import { getErrorMessage } from "@/lib/get-error-message";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+): Promise<NextResponse> {
+  const { id: idString } = await params;
+  const id = Number(idString);
+  if (!Number.isFinite(id)) return errors.badRequest("Invalid id");
 
-    const { id } = await params;
-    const session = await getSession(Number(id));
+  const auth = await requireAcademyAccessForRow("sessions", id);
+  if (!auth.ok) return auth.response;
+
+  try {
+    const session = await getSession(id);
     return NextResponse.json(session);
   } catch (error) {
     console.error("Error fetching session:", error);
-    return NextResponse.json({ error: "Failed to fetch session" }, { status: 500 });
+    return errors.internal("Failed to fetch session");
   }
 }
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+): Promise<NextResponse> {
+  const { id: idString } = await params;
+  const id = Number(idString);
+  if (!Number.isFinite(id)) return errors.badRequest("Invalid id");
 
-    const { id } = await params;
-    const body = await request.json();
-    const session = await updateSession(Number(id), body);
+  const auth = await requireAcademyAccessForRow("sessions", id);
+  if (!auth.ok) return auth.response;
+
+  const parsed = await validateBody(request, updateSessionSchema);
+  if (!parsed.success) return parsed.response;
+
+  try {
+    const session = await updateSession(id, parsed.data);
     return NextResponse.json(session);
   } catch (error) {
     console.error("Error updating session:", error);
-    return NextResponse.json(
-      { error: "Failed to update session", details: (error as any)?.message || String(error) },
-      { status: 500 }
-    );
+    return errors.internal(getErrorMessage(error) || "Failed to update session");
   }
 }
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+): Promise<NextResponse> {
+  const { id: idString } = await params;
+  const id = Number(idString);
+  if (!Number.isFinite(id)) return errors.badRequest("Invalid id");
 
-    const { id } = await params;
-    await deleteSession(Number(id));
+  const auth = await requireAcademyAccessForRow("sessions", id);
+  if (!auth.ok) return auth.response;
+
+  try {
+    await deleteSession(id);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting session:", error);
-    return NextResponse.json(
-      { error: "Failed to delete session", details: (error as any)?.message || String(error) },
-      { status: 500 }
-    );
+    return errors.internal(getErrorMessage(error) || "Failed to delete session");
   }
 }

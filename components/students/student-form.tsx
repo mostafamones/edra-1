@@ -37,6 +37,8 @@ import { cn } from "@/lib/utils"
 import { swatchClassForColorId } from "@/components/helpers/academy-utils"
 import { IconCalendarEvent } from "@tabler/icons-react"
 import { Toggle } from "../ui/toggle"
+import { api, ApiError } from "@/lib/api/client"
+import { getErrorMessage } from "@/lib/get-error-message"
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -339,28 +341,11 @@ const StudentFormFields = memo(function StudentFormFields({
       let savedStudentId: number
 
       if (initialStudent) {
-        const res = await fetch(`/api/students/${initialStudent.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(studentPayload),
-        })
-        if (!res.ok) {
-          const errBody = await res.json().catch(() => null)
-          throw new Error(errBody?.error || "Failed to update student")
-        }
+        await api.put(`/api/students/${initialStudent.id}`, studentPayload)
         savedStudentId = initialStudent.id
         toast.success("Student updated")
       } else {
-        const res = await fetch(`/api/students`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(studentPayload),
-        })
-        if (!res.ok) {
-          const errBody = await res.json().catch(() => null)
-          throw new Error(errBody?.error || "Failed to create student")
-        }
-        const created = await res.json()
+        const created = await api.post<{ id: number }>(`/api/students`, studentPayload)
         savedStudentId = created.id
         toast.success("Student created")
       }
@@ -374,45 +359,33 @@ const StudentFormFields = memo(function StudentFormFields({
 
         for (const id of desiredIds) {
           if (!currentIds.has(id)) {
-            const res = await fetch(`/api/students/${savedStudentId}/groups`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ scheduleId: id, academyId }),
+            await api.post(`/api/students/${savedStudentId}/groups`, {
+              scheduleId: id,
+              academyId,
             })
-            if (!res.ok) {
-              const errBody = await res.json().catch(() => null)
-              throw new Error(errBody?.error || "Failed to update schedule enrollment")
-            }
           }
         }
 
         for (const id of currentIds) {
           if (!desiredIds.has(id)) {
-            const res = await fetch(`/api/students/${savedStudentId}/groups`, {
-              method: "DELETE",
+            await api.delete(`/api/students/${savedStudentId}/groups`, {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ scheduleId: id }),
             })
-            if (!res.ok) {
-              const errBody = await res.json().catch(() => null)
-              throw new Error(errBody?.error || "Failed to remove schedule enrollment")
-            }
           }
         }
       } else {
         for (const scheduleId of desiredIds) {
-          const res = await fetch(`/api/students/${savedStudentId}/groups`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ scheduleId, academyId }),
+          await api.post(`/api/students/${savedStudentId}/groups`, {
+            scheduleId,
+            academyId,
           })
-          if (!res.ok) {
-            const errBody = await res.json().catch(() => null)
-            throw new Error(errBody?.error || "Failed to enroll in schedule")
-          }
         }
       }
 
+      if (!initialStudent) {
+        form.reset(defaultValues)
+      }
       onSuccess?.()
     } catch (err: unknown) {
       console.error(err)

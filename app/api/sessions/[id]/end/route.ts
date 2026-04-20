@@ -1,32 +1,32 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createClient } from "@/utils/supabase/server"
+import { requireAcademyAccess } from "@/lib/api/guard"
+import { errors } from "@/lib/api/response"
+import { validateBody } from "@/lib/api/validation"
+import { endSessionSchema } from "@/lib/schemas"
+import { getErrorMessage } from "@/lib/get-error-message"
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+): Promise<NextResponse> {
+  const resolvedParams = await params
+  const sessionId = parseInt(resolvedParams.id, 10)
+  if (!Number.isFinite(sessionId)) {
+    return errors.badRequest("Invalid Session ID format")
+  }
+
+  const parsed = await validateBody(request, endSessionSchema)
+  if (!parsed.success) return parsed.response
+
+  const auth = await requireAcademyAccess(parsed.data.academyId)
+  if (!auth.ok) return auth.response
+
+  const { migrations, notes } = parsed.data
+  const academyId = auth.ctx.academyId
+  const supabase = await createClient()
+
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
-    const resolvedParams = await params
-    const sessionIdStr = resolvedParams.id
-    if (!sessionIdStr) {
-      return NextResponse.json({ error: "Session ID is required" }, { status: 400 })
-    }
-
-    const sessionId = parseInt(sessionIdStr, 10)
-    if (isNaN(sessionId)) {
-      return NextResponse.json({ error: "Invalid Session ID format" }, { status: 400 })
-    }
-
-    const body = await request.json()
-    const { migrations, notes, academyId } = body
-
-    if (!academyId) {
-      return NextResponse.json({ error: "Academy ID is required" }, { status: 400 })
-    }
 
     // 0. Get the target schedule ID from the session
     const { data: sessionDataTarget, error: sessionFetchError } = await supabase
@@ -143,11 +143,8 @@ export async function POST(
     if (sessionError) throw sessionError
 
     return NextResponse.json({ success: true, session: sessionData }, { status: 200 })
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error ending session:", error)
-    return NextResponse.json(
-      { error: error.message || "Failed to end session" },
-      { status: 500 }
-    )
+    return errors.internal(getErrorMessage(error) || "Failed to end session")
   }
 }

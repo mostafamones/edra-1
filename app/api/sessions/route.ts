@@ -1,94 +1,113 @@
-import { createClient } from "@/utils/supabase/server";
-import { getSessions, getSession, createSession, updateSession, deleteSession, getSessionsByDateRange } from "@/lib/db/sessions";
+import { getSessions, createSession, deleteSession, getSessionsByDateRange } from "@/lib/db/sessions";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAcademyAccess, requireAcademyAccessForRow } from "@/lib/api/guard";
+import { errors, paginated, parsePagination, success } from "@/lib/api/response";
+import { validateBody } from "@/lib/api/validation";
+import { createSessionSchema } from "@/lib/schemas";
+import { getErrorMessage } from "@/lib/get-error-message";
 
-export async function GET(request: NextRequest) {
+function toYMD(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const { searchParams } = request.nextUrl;
+  const academyId = searchParams.get("academyId");
+  const startDate = searchParams.get("startDate");
+  const endDate = searchParams.get("endDate");
+  const scheduleId = searchParams.get("scheduleId");
+  const wantsPagination = searchParams.has("page") || searchParams.has("limit");
+
+  if (academyId) {
+    const auth = await requireAcademyAccess(academyId);
+    if (!auth.ok) return auth.response;
+
+    try {
+      const start =
+        startDate ||
+        (() => {
+          const d = new Date();
+          d.setDate(d.getDate() - 30);
+          return toYMD(d);
+        })();
+      const end =
+        endDate ||
+        (() => {
+          const d = new Date();
+          d.setDate(d.getDate() + 90);
+          return toYMD(d);
+        })();
+
+      if (wantsPagination) {
+        const { page, limit } = parsePagination(searchParams);
+        const { data, total } = await getSessionsByDateRange(
+          auth.ctx.academyId,
+          start,
+          end,
+          { page, limit }
+        );
+        return paginated(data, {
+          page,
+          limit,
+          total,
+          totalPages: Math.max(1, Math.ceil(total / limit)),
+        });
+      }
+
+      const sessions = await getSessionsByDateRange(auth.ctx.academyId, start, end);
+      return success(sessions);
+    } catch (err) {
+      console.error("Error fetching sessions:", err);
+      return errors.internal(getErrorMessage(err) || "Failed to fetch sessions");
+    }
+  }
+
+  if (!scheduleId) {
+    return errors.badRequest("academyId or scheduleId is required");
+  }
+
   try {
-    const { searchParams } = request.nextUrl;
-    const academyId = searchParams.get("academyId");
-    const startDate = searchParams.get("startDate");
-    const endDate = searchParams.get("endDate");
-    const scheduleId = searchParams.get("scheduleId");
-
-    // Preferred: academy + optional date range (matches `useSessions` hook)
-    if (academyId) {
-      const toYMD = (d: Date) => d.toISOString().slice(0, 10)
-      const start = startDate || (() => {
-        const d = new Date()
-        d.setDate(d.getDate() - 30)
-        return toYMD(d)
-      })()
-      const end = endDate || (() => {
-        const d = new Date()
-        d.setDate(d.getDate() + 90)
-        return toYMD(d)
-      })()
-
-      const sessions = await getSessionsByDateRange(academyId, start, end);
-      return NextResponse.json(sessions);
-    }
-
-    // Back-compat: scheduleId-only listing
-    if (!scheduleId) {
-      return NextResponse.json(
-        { error: "Academy ID is required" },
-        { status: 400 }
-      );
-    }
-
     const sessions = await getSessions(parseInt(scheduleId, 10));
-    return NextResponse.json(sessions);
-  } catch (error) {
-    console.error("Error fetching sessions:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch sessions" },
-      { status: 500 }
-    );
+    return success(sessions);
+  } catch (err) {
+    console.error("Error fetching sessions:", err);
+    return errors.internal(getErrorMessage(err) || "Failed to fetch sessions");
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const parsed = await validateBody(request, createSessionSchema);
+  if (!parsed.success) return parsed.response;
+
+  const auth = await requireAcademyAccess(parsed.data.academy_id);
+  if (!auth.ok) return auth.response;
+
   try {
-    const body = await request.json();
-    const { schedule_id, session_date, academy_id } = body;
-
-    if (!schedule_id || !session_date || !academy_id) {
-      return NextResponse.json(
-        { error: "Schedule ID, session date, and academy ID are required" },
-        { status: 400 }
-      );
-    }
-
-    const session = await createSession({ schedule_id, session_date, academy_id });
-    return NextResponse.json(session, { status: 201 });
-  } catch (error) {
-    console.error("Error creating session:", error);
-    return NextResponse.json(
-      { error: (error as any)?.message || "Failed to create session" },
-      { status: 500 }
-    );
+    const session = await createSession({
+      schedule_id: parsed.data.schedule_id,
+      session_date: parsed.data.session_date,
+      academy_id: auth.ctx.academyId,
+    });
+    return success(session, 201);
+  } catch (err) {
+    console.error("Error creating session:", err);
+    return errors.internal(getErrorMessage(err) || "Failed to create session");
   }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
+  const idParam = request.nextUrl.searchParams.get("id");
+  const id = idParam ? parseInt(idParam, 10) : NaN;
+  if (!Number.isFinite(id)) return errors.badRequest("Session ID is required");
+
+  const auth = await requireAcademyAccessForRow("sessions", id);
+  if (!auth.ok) return auth.response;
+
   try {
-    const { searchParams } = request.nextUrl;
-    const id = searchParams.get("id");
-
-    if (!id) {
-      return NextResponse.json(
-        { error: "Session ID is required" },
-        { status: 400 }
-      );
-    }
-
-    await deleteSession(parseInt(id, 10));
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error deleting session:", error);
-    return NextResponse.json(
-      { error: "Failed to delete session" },
-      { status: 500 }
-    );
+    await deleteSession(id);
+    return success({ deleted: true });
+  } catch (err) {
+    console.error("Error deleting session:", err);
+    return errors.internal(getErrorMessage(err) || "Failed to delete session");
   }
 }

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { useSchedules } from "@/lib/hooks/use-data"
+import * as scheduleMutations from "@/lib/hooks/mutations"
+import { getErrorMessage } from "@/lib/get-error-message"
 import type { ScheduleWithRelations, ScheduleTimeSlot } from "@/lib/types"
 
 import { SiteHeader } from "@/components/site-header"
@@ -84,39 +86,30 @@ export function SchedulesView({ academyId }: SchedulesViewProps) {
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return
     try {
-      const response = await fetch(`/api/schedules/${deleteTarget.id}`, { method: "DELETE" })
-      if (!response.ok) {
-        const errBody = await response.json().catch(() => null)
-        throw new Error(errBody?.error || errBody?.details || "Failed to delete")
-      }
-
+      await scheduleMutations.deleteSchedule(deleteTarget.id)
       refreshSchedules()
       toast.success("Schedule deleted")
       setDeleteTarget(null)
     } catch (error) {
       console.error("Delete error:", error)
-      toast.error("Could not delete schedule")
+      toast.error(getErrorMessage(error) || "Could not delete schedule")
     }
   }, [deleteTarget, refreshSchedules])
 
-  const handleToggleActive = useCallback(async (schedule: ScheduleWithRelations) => {
-    try {
-      const newActive = !schedule.is_active
-      const response = await fetch(`/api/schedules/${schedule.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_active: newActive }),
-      })
-
-      if (!response.ok) throw new Error("Failed to update")
-
-      refreshSchedules()
-      toast.success(newActive ? "Schedule activated" : "Schedule deactivated")
-    } catch (error) {
-      console.error("Toggle error:", error)
-      toast.error("Could not update schedule")
-    }
-  }, [refreshSchedules])
+  const handleToggleActive = useCallback(
+    async (schedule: ScheduleWithRelations) => {
+      try {
+        const newActive = !schedule.is_active
+        await scheduleMutations.toggleScheduleActive(schedule.id, newActive)
+        refreshSchedules()
+        toast.success(newActive ? "Schedule activated" : "Schedule deactivated")
+      } catch (error) {
+        console.error("Toggle error:", error)
+        toast.error(getErrorMessage(error) || "Could not update schedule")
+      }
+    },
+    [refreshSchedules]
+  )
 
   const openCreatePage = useCallback(() => {
     router.push(withAcademyPath(pathname, "/schedules/create"))

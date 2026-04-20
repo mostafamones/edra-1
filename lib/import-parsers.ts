@@ -1,4 +1,5 @@
 import Papa from 'papaparse'
+import { getErrorMessage } from '@/lib/get-error-message'
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -348,8 +349,8 @@ export function parseJSON(
 
       result.students.push(student)
     })
-  } catch (error: any) {
-    result.errors.push({ row: 0, message: `JSON parsing error: ${error.message}` })
+  } catch (error: unknown) {
+    result.errors.push({ row: 0, message: `JSON parsing error: ${getErrorMessage(error)}` })
   }
 
   return result

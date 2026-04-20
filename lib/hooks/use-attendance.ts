@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react"
 import { useQuery, invalidateCache, type UseQueryOptions } from "./use-query"
+import { apiFetch } from "@/lib/api/client"
 import { createClient } from "@/utils/supabase/client"
 import type { AttendanceWithStudent } from "@/lib/types"
 
@@ -22,16 +23,11 @@ export function useAttendance(
 
   const result = useQuery<AttendanceWithStudent[]>(
     cacheKey,
-    async () => {
-      const res = await fetch(`/api/attendance?sessionId=${sessionId}&_t=${Date.now()}`, {
-        cache: 'no-store'
-      })
-      if (!res.ok) {
-        const body = await res.json().catch(() => null)
-        throw new Error(body?.error || `Request failed (${res.status})`)
-      }
-      return res.json()
-    },
+    () =>
+      apiFetch<AttendanceWithStudent[]>(
+        `/api/attendance?sessionId=${sessionId}&_t=${Date.now()}`,
+        { cache: "no-store" }
+      ),
     {
       enabled: !!sessionId,
       deps: [sessionId],

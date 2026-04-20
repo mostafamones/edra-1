@@ -1,26 +1,23 @@
 import { generateInstructorInvite } from "@/lib/db/invites";
-import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAcademyAccess } from "@/lib/api/guard";
+import { errors } from "@/lib/api/response";
+import { validateBody } from "@/lib/api/validation";
+import { createInviteSchema } from "@/lib/schemas";
+import { getErrorMessage } from "@/lib/get-error-message";
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const parsed = await validateBody(request, createInviteSchema);
+  if (!parsed.success) return parsed.response;
+
+  const auth = await requireAcademyAccess(parsed.data.academyId);
+  if (!auth.ok) return auth.response;
+
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const { academyId, email } = await request.json();
-
-    if (!academyId) {
-      return NextResponse.json({ error: "academyId is required" }, { status: 400 });
-    }
-
-    const invite = await generateInstructorInvite(academyId, email);
+    const invite = await generateInstructorInvite(auth.ctx.academyId, parsed.data.email);
     return NextResponse.json(invite);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error generating invite:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to generate invite" },
-      { status: 500 }
-    );
+    return errors.internal(getErrorMessage(error) || "Failed to generate invite");
   }
 }

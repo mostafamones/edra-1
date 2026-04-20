@@ -40,6 +40,8 @@ import { ActiveFilterBadges } from "@/components/ui/active-filter-badges"
 import { DraggableColumnDropdown } from "@/components/ui/draggable-column-dropdown"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { withAcademyPath } from "@/components/helpers/sidebar"
+import * as studentMutations from "@/lib/hooks/mutations"
+import { getErrorMessage } from "@/lib/get-error-message"
 
 // ─── Persistence Keys ─────────────────────────────────────────
 
@@ -210,17 +212,13 @@ export function StudentsView({
     if (!deleteTarget) return
     setIsActioning(true)
     try {
-      const res = await fetch(`/api/students/${deleteTarget.id}`, { method: "DELETE" })
-      if (!res.ok) {
-        const err = await res.json().catch(() => null)
-        throw new Error(err?.details || "Failed to delete")
-      }
+      await studentMutations.deleteStudent(deleteTarget.id)
       setDeleteTarget(null)
       setRowSelection({})
       toast.success(`Deleted ${deleteTarget.full_name}`)
       refresh()
-    } catch (err: any) {
-      toast.error(err?.message || "Could not delete student")
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "Could not delete student")
     } finally {
       setIsActioning(false)
     }
@@ -231,17 +229,14 @@ export function StudentsView({
     setIsActioning(true)
     try {
       const isArchived = archiveTarget.is_archived
-      const res = await fetch(`/api/students/${archiveTarget.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_archived: !isArchived }),
+      await studentMutations.updateStudentRaw(archiveTarget.id, {
+        is_archived: !isArchived,
       })
-      if (!res.ok) throw new Error("Failed to update student")
       setArchiveTarget(null)
       toast.success(isArchived ? "Unarchived" : "Archived")
       refresh()
-    } catch (err: any) {
-      toast.error(err?.message || "Could not update student")
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "Could not update student")
     } finally {
       setIsActioning(false)
     }
@@ -260,27 +255,17 @@ export function StudentsView({
     setIsActioning(true)
     try {
       if (bulkAction === "delete") {
-        await Promise.all(
-          selectedIds.map((id) => fetch(`/api/students/${id}`, { method: "DELETE" }))
-        )
+        await studentMutations.bulkDeleteStudents(selectedIds)
         toast.success(`Deleted ${selectedIds.length} student${selectedIds.length > 1 ? "s" : ""}`)
       } else if (bulkAction === "archive") {
-        await Promise.all(
-          selectedIds.map((id) =>
-            fetch(`/api/students/${id}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ is_archived: true }),
-            })
-          )
-        )
+        await studentMutations.bulkArchiveStudents(selectedIds)
         toast.success(`Archived ${selectedIds.length} student${selectedIds.length > 1 ? "s" : ""}`)
       }
       setRowSelection({})
       setBulkAction(null)
       refresh()
-    } catch (err: any) {
-      toast.error(err?.message || "Bulk action failed")
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "Bulk action failed")
     } finally {
       setIsActioning(false)
     }

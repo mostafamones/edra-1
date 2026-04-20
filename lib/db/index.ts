@@ -1,3 +1,4 @@
+export * from './pagination';
 export * from './academies';
 export * from './groups';
 export * from './courses';

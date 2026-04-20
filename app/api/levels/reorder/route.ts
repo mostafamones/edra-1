@@ -1,29 +1,41 @@
 import { reorderLevels } from "@/lib/db/levels";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAcademyAccessForRow } from "@/lib/api/guard";
+import { errors } from "@/lib/api/response";
+import { validateBody } from "@/lib/api/validation";
+import { reorderLevelsSchema } from "@/lib/schemas";
+import { getServiceSupabase } from "@/utils/supabase/admin";
+import { getErrorMessage } from "@/lib/get-error-message";
 
-/**
- * PATCH /api/levels/reorder
- * Body: { orderedIds: number[] }
- */
-export async function PATCH(request: NextRequest) {
+export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  const parsed = await validateBody(request, reorderLevelsSchema);
+  if (!parsed.success) return parsed.response;
+
+  const { orderedIds } = parsed.data;
+
+  const auth = await requireAcademyAccessForRow("levels", orderedIds[0]);
+  if (!auth.ok) return auth.response;
+
+  const admin = getServiceSupabase();
+  const { data: rows, error: fetchError } = await admin
+    .from("levels")
+    .select("id, academy_id")
+    .in("id", orderedIds);
+
+  if (fetchError || !rows || rows.length !== orderedIds.length) {
+    return errors.badRequest("One or more levels not found");
+  }
+
+  const foreign = (rows as { academy_id: string }[]).some(
+    (r) => r.academy_id !== auth.ctx.academyId
+  );
+  if (foreign) return errors.forbidden("Cross-academy reorder is not allowed");
+
   try {
-    const body = await request.json();
-    const { orderedIds } = body as { orderedIds: number[] };
-
-    if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
-      return NextResponse.json(
-        { error: "orderedIds must be a non-empty array" },
-        { status: 400 }
-      );
-    }
-
     await reorderLevels(orderedIds);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error reordering levels:", error);
-    return NextResponse.json(
-      { error: "Failed to reorder levels", details: (error as any)?.message || String(error) },
-      { status: 500 }
-    );
+    return errors.internal(getErrorMessage(error) || "Failed to reorder levels");
   }
 }

@@ -15,9 +15,11 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 import type { ScheduleWithRelations } from "@/lib/types"
-import { useSchedules } from "@/lib/hooks/use-data"
+import { useSchedules, invalidateSessions } from "@/lib/hooks/use-data"
 import { encodeSessionId } from "@/lib/hashid"
 import { withAcademyPath } from "@/components/helpers/sidebar"
+import { api } from "@/lib/api/client"
+import { getErrorMessage } from "@/lib/get-error-message"
 
 export interface StartSessionFormProps {
   open: boolean
@@ -65,32 +67,25 @@ export function StartSessionForm({
 
     setIsLoading(true)
     try {
-      const res = await fetch("/api/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          schedule_id: Number(formData.schedule_id),
-          session_date: formData.session_date,
-          academy_id: academyId,
-          is_cancelled: isCancelled,
-        }),
+      const session = await api.post<{ id: number }>("/api/sessions", {
+        schedule_id: Number(formData.schedule_id),
+        session_date: formData.session_date,
+        academy_id: academyId,
+        is_cancelled: isCancelled,
       })
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => null)
-        throw new Error(err?.error || "Failed to start session")
-      }
+      toast.success(
+        isCancelled ? "Cancelled session logged successfully" : "Session started successfully"
+      )
 
-      const session = await res.json()
-      toast.success(isCancelled ? "Cancelled session logged successfully" : "Session started successfully")
-
+      invalidateSessions()
       onOpenChange(false)
       onSuccess?.()
 
       router.refresh()
       router.push(withAcademyPath(pathname, `/sessions/${encodeSessionId(session.id)}`))
-    } catch (error: any) {
-      toast.error(error?.message || "Could not start session")
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "Could not start session")
     } finally {
       setIsLoading(false)
     }

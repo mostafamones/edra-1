@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default function AcademySkeleton() {
+export function AcademySkeleton() {
   return (
     <div className="flex flex-col gap-4 px-4">
       <div className="flex items-center justify-between">

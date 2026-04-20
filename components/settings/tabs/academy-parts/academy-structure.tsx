@@ -33,7 +33,11 @@ import {
   type StructureLevel,
 } from "@/components/shared/academy/level-rows"
 import { expandLevelWithCap } from "@/components/helpers/academy-utils"
-import AcademySkeleton from "@/components/shared/academy/skeleton"
+import { AcademySkeleton } from "@/components/shared/academy/skeleton"
+import { api } from "@/lib/api/client"
+import * as mutations from "@/lib/hooks/mutations"
+import { invalidateLevels } from "@/lib/hooks/use-data"
+import { getErrorMessage } from "@/lib/get-error-message"
 
 type GroupShape = Pick<Group, "id" | "name">
 type LevelShape = Pick<Level, "id" | "name" | "color"> & { groups: GroupShape[] }
@@ -132,25 +136,20 @@ export function AcademyStructure({
     try {
       // Compute next sort_order from the current local order
       const nextSortOrder = levels.length + 1
-      const res = await fetch("/api/levels", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          academy_id: academyId,
-          name: addingLevelName.trim(),
-          color: addingLevelColor,
-          sort_order: nextSortOrder,
-        }),
+      await api.post("/api/levels", {
+        academy_id: academyId,
+        name: addingLevelName.trim(),
+        color: addingLevelColor,
+        sort_order: nextSortOrder,
       })
-      if (!res.ok) throw new Error("Failed to create level")
-      await res.json()
+      invalidateLevels()
       await refreshLevels()
       setAddingLevelName("")
       setAddingLevelColor(DEFAULT_LEVEL_COLOR_ID)
       setShowAddLevel(false)
     } catch (err) {
       console.error("Error creating level:", err)
-      toast.error("Could not create level.")
+      toast.error(getErrorMessage(err) || "Could not create level.")
     } finally {
       setSavingId(null)
     }
@@ -160,17 +159,15 @@ export function AcademyStructure({
     if (!editingLevelName.trim()) return
     setSavingId(`level-${levelId}`)
     try {
-      const res = await fetch(`/api/levels/${levelId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editingLevelName.trim(), color: editingLevelColor }),
+      await mutations.updateLevel(levelId, {
+        name: editingLevelName.trim(),
+        color: editingLevelColor,
       })
-      if (!res.ok) throw new Error("Failed to update level")
       await refreshLevels()
       setEditingLevelId(null)
     } catch (err) {
       console.error("Error updating level:", err)
-      toast.error("Could not update level.")
+      toast.error(getErrorMessage(err) || "Could not update level.")
     } finally {
       setSavingId(null)
     }
@@ -179,19 +176,17 @@ export function AcademyStructure({
   const handleDeleteLevel = async (levelId: number) => {
     setSavingId(`delete-level-${levelId}`)
     try {
-      const res = await fetch(`/api/levels/${levelId}`, { method: "DELETE" })
-      if (!res.ok) throw new Error("Failed to delete level")
+      await mutations.deleteLevel(levelId)
       await Promise.all([refreshLevels(), refreshGroups()])
       setExpandedLevels((prev) => {
         const next = new Set(prev)
         next.delete(levelId)
         return next
       })
-      // Remove deleted level from pending order if present
-      setPendingOrder((prev) => prev ? prev.filter((id) => id !== levelId) : null)
+      setPendingOrder((prev) => (prev ? prev.filter((id) => id !== levelId) : null))
     } catch (err) {
       console.error("Error deleting level:", err)
-      toast.error("Could not delete level.")
+      toast.error(getErrorMessage(err) || "Could not delete level.")
     } finally {
       setSavingId(null)
     }
@@ -201,24 +196,18 @@ export function AcademyStructure({
     if (!academyId || !addingGroupName.trim()) return
     setSavingId(`add-group-${levelId}`)
     try {
-      const res = await fetch("/api/groups", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          academy_id: academyId,
-          level_id: levelId,
-          name: addingGroupName.trim(),
-        }),
+      await mutations.createGroup({
+        academy_id: academyId,
+        level_id: levelId,
+        name: addingGroupName.trim(),
       })
-      if (!res.ok) throw new Error("Failed to create group")
-      await res.json()
       await refreshGroups()
       setAddingGroupName("")
       setAddingGroupToLevel(null)
       setExpandedLevels((prev) => expandLevelWithCap(prev, levelId))
     } catch (err) {
       console.error("Error creating group:", err)
-      toast.error("Could not create group.")
+      toast.error(getErrorMessage(err) || "Could not create group.")
     } finally {
       setSavingId(null)
     }
@@ -228,17 +217,12 @@ export function AcademyStructure({
     if (!editingGroupName.trim()) return
     setSavingId(`group-${groupId}`)
     try {
-      const res = await fetch("/api/groups", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: groupId, name: editingGroupName.trim() }),
-      })
-      if (!res.ok) throw new Error("Failed to update group")
+      await mutations.updateGroup(groupId, { name: editingGroupName.trim() })
       await refreshGroups()
       setEditingGroupId(null)
     } catch (err) {
       console.error("Error updating group:", err)
-      toast.error("Could not update group.")
+      toast.error(getErrorMessage(err) || "Could not update group.")
     } finally {
       setSavingId(null)
     }
@@ -247,12 +231,11 @@ export function AcademyStructure({
   const handleDeleteGroup = async (groupId: number) => {
     setSavingId(`delete-group-${groupId}`)
     try {
-      const res = await fetch(`/api/groups?id=${groupId}`, { method: "DELETE" })
-      if (!res.ok) throw new Error("Failed to delete group")
+      await mutations.deleteGroup(groupId)
       await refreshGroups()
     } catch (err) {
       console.error("Error deleting group:", err)
-      toast.error("Could not delete group.")
+      toast.error(getErrorMessage(err) || "Could not delete group.")
     } finally {
       setSavingId(null)
     }
@@ -267,18 +250,14 @@ export function AcademyStructure({
     if (!pendingOrder) return
     setSavingOrder(true)
     try {
-      const res = await fetch("/api/levels/reorder", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderedIds: pendingOrder }),
-      })
-      if (!res.ok) throw new Error("Failed to save order")
+      await api.patch("/api/levels/reorder", { orderedIds: pendingOrder })
+      invalidateLevels()
       await refreshLevels()
       setPendingOrder(null)
       toast.success("Level order saved.")
     } catch (err) {
       console.error("Error saving level order:", err)
-      toast.error("Could not save order.")
+      toast.error(getErrorMessage(err) || "Could not save order.")
     } finally {
       setSavingOrder(false)
     }

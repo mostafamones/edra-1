@@ -2,27 +2,25 @@ import { createStudentsBulk, getStudents } from "@/lib/db/students";
 import { enrollStudentInSchedule } from "@/lib/db/schedules";
 import { getServiceSupabase } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAcademyAccess } from "@/lib/api/guard";
+import { errors as apiErrors } from "@/lib/api/response";
+import { validateBody } from "@/lib/api/validation";
+import { bulkStudentsSchema } from "@/lib/schemas";
+import { getErrorMessage } from "@/lib/get-error-message";
 
 const supabase = getServiceSupabase();
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const parsed = await validateBody(request, bulkStudentsSchema);
+  if (!parsed.success) return parsed.response;
+
+  const auth = await requireAcademyAccess(parsed.data.academyId);
+  if (!auth.ok) return auth.response;
+
+  const academyId = auth.ctx.academyId;
+  const { students, defaultLevelId, defaultGroupId, scheduleIds } = parsed.data;
+
   try {
-    const body = await request.json();
-    const { students, academyId, defaultLevelId, defaultGroupId, scheduleIds } = body;
-
-    if (!academyId) {
-      return NextResponse.json(
-        { error: "Academy ID is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!Array.isArray(students) || students.length === 0) {
-      return NextResponse.json(
-        { error: "Students array is required and must not be empty" },
-        { status: 400 }
-      );
-    }
 
     // Get existing students to check for duplicates
     const existingStudents = await getStudents(academyId);
@@ -146,11 +144,8 @@ export async function POST(request: NextRequest) {
       errors,
       students: createdStudents,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error creating students in bulk:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to create students" },
-      { status: 500 }
-    );
+    return apiErrors.internal(getErrorMessage(error) || "Failed to create students");
   }
 }

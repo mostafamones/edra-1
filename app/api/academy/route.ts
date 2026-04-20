@@ -9,21 +9,18 @@ import { createLevel } from "@/lib/db/levels";
 import { getServiceSupabase } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth, requireAcademyAccess } from "@/lib/api/guard";
+import { errors } from "@/lib/api/response";
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const academyId = request.nextUrl.searchParams.get("academyId");
+  const auth = await requireAcademyAccess(academyId);
+  if (!auth.ok) return auth.response;
+
   try {
-    const academyId = request.nextUrl.searchParams.get("academyId");
-
-    if (!academyId) {
-      return NextResponse.json(
-        { error: "Academy ID is required" },
-        { status: 400 }
-      );
-    }
-
     const [academy, memberships] = await Promise.all([
-      getAcademy(academyId),
-      getMemberships(academyId),
+      getAcademy(auth.ctx.academyId),
+      getMemberships(auth.ctx.academyId),
     ]);
 
     // Count active instructors (those with active memberships)
@@ -53,40 +50,40 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function PATCH(request: NextRequest) {
+export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  let body: Record<string, unknown>;
   try {
-    const body = await request.json();
-    const { id, ...updates } = body;
+    body = await request.json();
+  } catch {
+    return errors.badRequest("Invalid JSON body");
+  }
 
-    if (!id) {
-      return NextResponse.json(
-        { error: "Academy ID is required" },
-        { status: 400 }
-      );
-    }
+  const { id, ...updates } = body as { id?: string } & Record<string, unknown>;
+  if (!id) return errors.badRequest("Academy ID is required");
 
+  const auth = await requireAcademyAccess(id);
+  if (!auth.ok) return auth.response;
+
+  try {
     const academy = await updateAcademy(id, updates);
     return NextResponse.json(academy);
   } catch (error) {
     console.error("Error updating academy:", error);
-    return NextResponse.json(
-      { error: "Failed to update academy" },
-      { status: 500 }
-    );
+    return errors.internal("Failed to update academy");
   }
 }
 
 // ── POST /api/academy — Create a new academy (all steps in one transaction) ──
 
-export async function POST(request: NextRequest) {
-  try {
-    // 1. Auth: get the current user from the cookie session
-    const supabaseClient = await createClient();
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
 
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const supabaseClient = await createClient();
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) return errors.unauthorized();
+
+  try {
 
     // 2. Resolve (or create) the instructor record for this user
     let instructor = await getInstructorByUserId(user.id);

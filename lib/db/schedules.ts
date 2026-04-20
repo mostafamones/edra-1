@@ -6,24 +6,46 @@ import {
   ScheduleTimeSlotInsert,
   ScheduleEnrollmentInsert,
 } from '../types';
+import type { ListPagination, PaginatedResult } from './pagination';
 
 const supabase: any = getServiceSupabase();
 
-export async function getSchedules(academyId: string) {
-  const { data, error } = await supabase
+const SCHEDULE_LIST_SELECT = `
+  *,
+  level:levels(*),
+  group:groups(*),
+  schedule_group:schedule_groups(*),
+  time_slots:schedule_time_slots(*),
+  schedule_enrollments(count)
+`;
+
+export async function getSchedules(academyId: string): Promise<any[]>;
+export async function getSchedules(
+  academyId: string,
+  pagination: ListPagination
+): Promise<PaginatedResult<any>>;
+export async function getSchedules(
+  academyId: string,
+  pagination?: ListPagination
+) {
+  let query = supabase
     .from('class_schedules')
-    .select(`
-      *,
-      level:levels(*),
-      group:groups(*),
-      schedule_group:schedule_groups(*),
-      time_slots:schedule_time_slots(*),
-      schedule_enrollments(count)
-    `)
+    .select(SCHEDULE_LIST_SELECT, pagination ? { count: 'exact' } : {})
     .eq('academy_id', academyId)
     .order('name');
 
+  if (pagination) {
+    const from = (pagination.page - 1) * pagination.limit;
+    const to = from + pagination.limit - 1;
+    query = query.range(from, to);
+  }
+
+  const { data, error, count } = await query;
+
   if (error) throw error;
+  if (pagination) {
+    return { data: data ?? [], total: count ?? 0 };
+  }
   return data;
 }
 

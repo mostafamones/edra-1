@@ -1,15 +1,18 @@
 import { getUser, updateUser, updateUserLastSeen } from "@/lib/db/users";
 import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api/guard";
+import { errors } from "@/lib/api/response";
+import { getErrorMessage } from "@/lib/get-error-message";
 
-export async function GET(request: NextRequest) {
+export async function GET(): Promise<NextResponse> {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
+    if (!user) return errors.unauthorized();
 
     const profile = await getUser(user.id);
     return NextResponse.json({
@@ -19,70 +22,44 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error fetching user:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch user profile" },
-      { status: 500 }
-    );
+    return errors.internal("Failed to fetch user profile");
   }
 }
 
-export async function PATCH(request: NextRequest) {
+export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
+    if (!user) return errors.unauthorized();
 
     const body = await request.json();
-    const { full_name, phone, ...otherFields } = body;
+    const { full_name } = body;
 
-    // Update user profile
-    const profile = await updateUser(user.id, {
-      full_name,
-      phone,
-      ...otherFields,
-    });
+    const profile = await updateUser(user.id, body);
 
-    // Sync to auth metadata
     if (full_name !== undefined) {
-      await supabase.auth.updateUser({
-        data: { full_name: full_name.trim() || "" }
-      });
+      await supabase.auth.updateUser({ data: { full_name: full_name.trim() || "" } });
     }
-
-    // Update last seen
     await updateUserLastSeen(user.id);
-
     return NextResponse.json(profile);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error updating user profile:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to update profile" },
-      { status: 500 }
-    );
+    return errors.internal(getErrorMessage(error) || "Failed to update profile");
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(): Promise<NextResponse> {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    // Update last seen timestamp
-    await updateUserLastSeen(user.id);
-
+    await updateUserLastSeen(auth.ctx.userId);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error tracking user activity:", error);
-    return NextResponse.json(
-      { error: "Failed to track user activity" },
-      { status: 500 }
-    );
+    return errors.internal("Failed to track user activity");
   }
 }

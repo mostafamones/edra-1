@@ -21,6 +21,9 @@ import { toast } from "sonner"
 import { IconAlertTriangle } from "@tabler/icons-react"
 import type { AttendanceWithStudent, SessionWithSchedule } from "@/lib/types"
 import { invalidateAttendance } from "@/lib/hooks/use-attendance"
+import { api } from "@/lib/api/client"
+import * as sessionMutations from "@/lib/hooks/mutations"
+import { getErrorMessage } from "@/lib/get-error-message"
 
 interface AnomalyResolutionDialogProps {
   open: boolean
@@ -41,26 +44,16 @@ export function AnomalyResolutionDialog({
 
   const handleResolutionChange = async (studentId: number, note: string) => {
     try {
-      const res = await fetch("/api/attendance", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          studentId,
-          sessionId: session.id,
-          academyId: session.academy_id,
-          note,
-        }),
+      await api.put("/api/attendance", {
+        studentId,
+        sessionId: session.id,
+        academyId: session.academy_id,
+        note,
       })
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || "Failed to save resolution")
-      }
-
       invalidateAttendance()
       onSuccess?.()
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save resolution")
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "Failed to save resolution")
     }
   }
 
@@ -71,26 +64,17 @@ export function AnomalyResolutionDialog({
         .filter((a) => a.note === "Migrating")
         .map((a) => a.student_id)
 
-      const res = await fetch(`/api/sessions/${session.id}/end`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          academyId: session.academy_id,
-          migrations,
-          notes: [],
-        }),
+      await sessionMutations.endSession(session.id, {
+        academyId: session.academy_id,
+        migrations,
+        notes: [],
       })
-
-      if (!res.ok) {
-        const errorData = await res.json()
-        throw new Error(errorData.error || "Failed to end session")
-      }
 
       toast.success("Session ended successfully")
       onSuccess?.()
       onOpenChange(false)
-    } catch (err: any) {
-      toast.error(err.message || "Could not end session")
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "Could not end session")
     } finally {
       setIsEnding(false)
     }

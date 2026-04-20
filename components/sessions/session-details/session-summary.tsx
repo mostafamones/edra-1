@@ -17,6 +17,8 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 import type { AttendanceWithStudent, SessionWithSchedule } from "@/lib/types"
 import { AnomalyResolutionDialog } from "./anomaly-resolution-dialog"
+import * as sessionMutations from "@/lib/hooks/mutations"
+import { getErrorMessage } from "@/lib/get-error-message"
 
 interface SessionSummaryProps {
   session: SessionWithSchedule
@@ -52,16 +54,11 @@ export function SessionSummary({ session, attendanceData, onRefresh }: SessionSu
   const handleDelete = async () => {
     setIsActioning(true)
     try {
-      const res = await fetch(`/api/sessions/${session.id}`, { method: "DELETE" })
-      if (!res.ok) {
-        const err = await res.json().catch(() => null)
-        throw new Error(err?.error || err?.details || "Failed to delete session")
-      }
+      await sessionMutations.deleteSession(session.id)
       toast.success("Session deleted")
-      // Parent should navigate away; we just refresh.
       onRefresh()
-    } catch (e: any) {
-      toast.error(e?.message || "Could not delete session")
+    } catch (e) {
+      toast.error(getErrorMessage(e) || "Could not delete session")
     } finally {
       setIsActioning(false)
       setDeleteOpen(false)
@@ -72,19 +69,14 @@ export function SessionSummary({ session, attendanceData, onRefresh }: SessionSu
     setIsActioning(true)
     try {
       const isArchived = session.status === "archived"
-      const res = await fetch(`/api/sessions/${session.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: isArchived ? "live" : "archived" }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => null)
-        throw new Error(err?.error || err?.details || "Failed to update session")
-      }
+      await sessionMutations.updateSessionStatus(
+        session.id,
+        isArchived ? "live" : "archived"
+      )
       toast.success(isArchived ? "Unarchived" : "Archived")
       onRefresh()
-    } catch (e: any) {
-      toast.error(e?.message || "Could not update session")
+    } catch (e) {
+      toast.error(getErrorMessage(e) || "Could not update session")
     } finally {
       setIsActioning(false)
       setArchiveOpen(false)
@@ -99,19 +91,15 @@ export function SessionSummary({ session, attendanceData, onRefresh }: SessionSu
 
     setIsActioning(true)
     try {
-      const res = await fetch(`/api/sessions/${session.id}/end`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ academyId: session.academy_id, migrations: [], notes: [] }),
+      await sessionMutations.endSession(session.id, {
+        academyId: session.academy_id,
+        migrations: [],
+        notes: [],
       })
-      if (!res.ok) {
-        const err = await res.json().catch(() => null)
-        throw new Error(err?.error || "Failed to end session")
-      }
       toast.success("Session ended")
       onRefresh()
-    } catch (e: any) {
-      toast.error(e?.message || "Could not end session")
+    } catch (e) {
+      toast.error(getErrorMessage(e) || "Could not end session")
     } finally {
       setIsActioning(false)
     }

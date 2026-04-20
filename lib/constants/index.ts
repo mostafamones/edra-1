@@ -118,16 +118,19 @@ export const isActive = (status: string | boolean | null | undefined): boolean =
 // USER ROLES
 // ============================================================================
 
-export const ROLE = {
-  OWNER: "owner",
-  ADMIN: "admin",
-  INSTRUCTOR: "instructor",
-} as const;
+export * from "./roles";
+import { MEMBERSHIP_ROLES } from "./roles";
+
+/**
+ * @deprecated Use `MEMBERSHIP_ROLES` from `@/lib/constants/roles` instead. Kept
+ * to avoid churning every existing import at once.
+ */
+export const ROLE = MEMBERSHIP_ROLES;
 
 export const ROLE_ORDER: Record<string, number> = {
-  [ROLE.OWNER]: 0,
-  [ROLE.ADMIN]: 1,
-  [ROLE.INSTRUCTOR]: 2,
+  [MEMBERSHIP_ROLES.OWNER]: 0,
+  [MEMBERSHIP_ROLES.ADMIN]: 1,
+  [MEMBERSHIP_ROLES.INSTRUCTOR]: 2,
 };
 
 export const getRoleOrder = (role: string): number => {
@@ -392,7 +395,7 @@ export const LTR_LOCALES = ["en"] as const;
 export const DEFAULT_LOCALE = "en";
 
 export const isRTL = (locale: string): boolean => {
-  return RTL_LOCALES.includes(locale as any);
+  return (RTL_LOCALES as readonly string[]).includes(locale);
 };
 
 export const getDirection = (locale: string): "rtl" | "ltr" => {

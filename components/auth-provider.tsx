@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAcademy, type AcademyWithMeta } from "@/lib/hooks/use-data"
 import { cn } from "@/lib/utils"
+import type { MembershipRole } from "@/lib/constants/roles"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -17,7 +18,7 @@ export type AcademyEntry = {
   name: string
   slug: string
   icon: string | null
-  role: string
+  role: MembershipRole
 }
 
 type AuthContextType = {

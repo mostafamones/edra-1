@@ -4,78 +4,87 @@ import {
   unenrollStudentFromSchedule,
 } from "@/lib/db/schedules";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAcademyAccessForRow } from "@/lib/api/guard";
+import { errors } from "@/lib/api/response";
+import { validateBody } from "@/lib/api/validation";
+import { studentScheduleEnrollSchema, studentScheduleUnenrollSchema } from "@/lib/schemas";
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+): Promise<NextResponse> {
+  const { id: idString } = await params;
+  const id = Number(idString);
+  if (!Number.isFinite(id)) return errors.badRequest("Invalid id");
+
+  const auth = await requireAcademyAccessForRow("students", id);
+  if (!auth.ok) return auth.response;
+
   try {
-    const { id: idString } = await params;
-    const id = Number(idString);
     const schedules = await getStudentSchedules(id);
     return NextResponse.json(schedules);
   } catch (error) {
     console.error("Error fetching student schedules:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch student schedules" },
-      { status: 500 }
-    );
+    return errors.internal("Failed to fetch student schedules");
   }
 }
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+): Promise<NextResponse> {
+  const { id: idString } = await params;
+  const studentId = Number(idString);
+  if (!Number.isFinite(studentId)) return errors.badRequest("Invalid id");
+
+  const parsed = await validateBody(request, studentScheduleEnrollSchema);
+  if (!parsed.success) return parsed.response;
+
+  const auth = await requireAcademyAccessForRow("students", studentId);
+  if (!auth.ok) return auth.response;
+
+  if (parsed.data.academyId !== auth.ctx.academyId) {
+    return errors.forbidden("academyId mismatch");
+  }
+
+  const targetId = parsed.data.scheduleId ?? parsed.data.groupId;
+  if (!targetId) return errors.badRequest("scheduleId or groupId is required");
+
   try {
-    const { id: idString } = await params;
-    const studentId = Number(idString);
-    const { scheduleId, groupId, academyId } = await request.json();
-    const targetId = scheduleId || groupId;
-
-    if (!targetId || !academyId) {
-      return NextResponse.json(
-        { error: "scheduleId and academyId are required" },
-        { status: 400 }
-      );
-    }
-
-    await enrollStudentInSchedule({ academy_id: academyId, student_id: studentId, schedule_id: targetId });
+    await enrollStudentInSchedule({
+      academy_id: auth.ctx.academyId,
+      student_id: studentId,
+      schedule_id: targetId,
+    });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error enrolling student in schedule:", error);
-    return NextResponse.json(
-      { error: "Failed to enroll student in schedule" },
-      { status: 500 }
-    );
+    return errors.internal("Failed to enroll student in schedule");
   }
 }
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+): Promise<NextResponse> {
+  const { id: idString } = await params;
+  const studentId = Number(idString);
+  if (!Number.isFinite(studentId)) return errors.badRequest("Invalid id");
+
+  const auth = await requireAcademyAccessForRow("students", studentId);
+  if (!auth.ok) return auth.response;
+
+  const parsed = await validateBody(request, studentScheduleUnenrollSchema);
+  if (!parsed.success) return parsed.response;
+
+  const targetId = parsed.data.scheduleId ?? parsed.data.groupId;
+  if (!targetId) return errors.badRequest("scheduleId or groupId is required");
+
   try {
-    const { id: idString } = await params;
-    const studentId = Number(idString);
-    const body = await request.json();
-    const { scheduleId, groupId } = body;
-    const targetId = scheduleId || groupId;
-
-    if (!targetId) {
-      return NextResponse.json(
-        { error: "scheduleId is required" },
-        { status: 400 }
-      );
-    }
-
     await unenrollStudentFromSchedule(studentId, targetId);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error removing student from schedule:", error);
-    return NextResponse.json(
-      { error: "Failed to remove student from schedule" },
-      { status: 500 }
-    );
+    return errors.internal("Failed to remove student from schedule");
   }
 }

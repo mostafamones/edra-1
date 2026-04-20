@@ -1,5 +1,6 @@
 import { getServiceSupabase } from '../supabase';
 import { Session, SessionInsert, SessionUpdate, SessionWithSchedule } from '../types';
+import type { ListPagination, PaginatedResult } from './pagination';
 
 const supabase: any = getServiceSupabase();
 
@@ -65,23 +66,52 @@ export async function deleteSession(id: number) {
   if (error) throw error;
 }
 
-export async function getSessionsByDateRange(academyId: string, startDate: string, endDate: string) {
-  const { data, error } = await supabase
+const SESSIONS_RANGE_SELECT = `
+  *,
+  schedule:class_schedules(
+    *,
+    level:levels(*),
+    group:groups(*),
+    course:courses(*)
+  )
+`;
+
+export async function getSessionsByDateRange(
+  academyId: string,
+  startDate: string,
+  endDate: string
+): Promise<SessionWithSchedule[]>;
+export async function getSessionsByDateRange(
+  academyId: string,
+  startDate: string,
+  endDate: string,
+  pagination: ListPagination
+): Promise<PaginatedResult<SessionWithSchedule>>;
+export async function getSessionsByDateRange(
+  academyId: string,
+  startDate: string,
+  endDate: string,
+  pagination?: ListPagination
+) {
+  let query = supabase
     .from('sessions')
-    .select(`
-      *,
-      schedule:class_schedules(
-        *,
-        level:levels(*),
-        group:groups(*),
-        course:courses(*)
-      )
-    `)
+    .select(SESSIONS_RANGE_SELECT, pagination ? { count: 'exact' } : {})
     .eq('academy_id', academyId)
     .gte('session_date', startDate)
     .lte('session_date', endDate)
     .order('session_date');
 
+  if (pagination) {
+    const from = (pagination.page - 1) * pagination.limit;
+    const to = from + pagination.limit - 1;
+    query = query.range(from, to);
+  }
+
+  const { data, error, count } = await query;
+
   if (error) throw error;
+  if (pagination) {
+    return { data: (data ?? []) as SessionWithSchedule[], total: count ?? 0 };
+  }
   return data as SessionWithSchedule[];
 }

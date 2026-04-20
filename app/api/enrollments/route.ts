@@ -5,103 +5,87 @@ import {
   createEnrollment,
   updateEnrollment,
   deleteEnrollment,
-  completeEnrollment,
 } from "@/lib/db/enrollments";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAcademyAccess, requireAcademyAccessForRow } from "@/lib/api/guard";
+import { errors } from "@/lib/api/response";
+import { validateBody } from "@/lib/api/validation";
+import { createEnrollmentSchema, updateEnrollmentSchema } from "@/lib/schemas";
+import { getErrorMessage } from "@/lib/get-error-message";
+import { z } from "zod";
 
-export async function GET(request: NextRequest) {
+const patchEnrollmentSchema = updateEnrollmentSchema.extend({ id: z.number().int() });
+
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const academyId = request.nextUrl.searchParams.get("academyId");
+  const courseId = request.nextUrl.searchParams.get("courseId");
+  const studentId = request.nextUrl.searchParams.get("studentId");
+  const auth = await requireAcademyAccess(academyId);
+  if (!auth.ok) return auth.response;
+
   try {
-    const academyId = request.nextUrl.searchParams.get("academyId");
-    const courseId = request.nextUrl.searchParams.get("courseId");
-    const studentId = request.nextUrl.searchParams.get("studentId");
-
-    if (!academyId) {
-      return NextResponse.json(
-        { error: "Academy ID is required" },
-        { status: 400 }
-      );
-    }
-
     if (studentId) {
-      // Get specific student's enrollments
       const enrollments = await getStudentEnrollments(parseInt(studentId, 10));
       return NextResponse.json(enrollments);
     }
-
     if (courseId) {
-      // Get specific course's enrollments
       const enrollments = await getCourseEnrollments(parseInt(courseId, 10));
       return NextResponse.json(enrollments);
     }
-
-    // Get all academy enrollments
-    const enrollments = await getEnrollments(academyId);
+    const enrollments = await getEnrollments(auth.ctx.academyId);
     return NextResponse.json(enrollments);
   } catch (error) {
     console.error("Error fetching enrollments:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch enrollments" },
-      { status: 500 }
-    );
+    return errors.internal("Failed to fetch enrollments");
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const parsed = await validateBody(request, createEnrollmentSchema);
+  if (!parsed.success) return parsed.response;
+
+  const auth = await requireAcademyAccess(parsed.data.academy_id);
+  if (!auth.ok) return auth.response;
+
   try {
-    const body = await request.json();
-    const enrollment = await createEnrollment(body);
+    const enrollment = await createEnrollment({ ...parsed.data, academy_id: auth.ctx.academyId });
     return NextResponse.json(enrollment, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error creating enrollment:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to create enrollment" },
-      { status: 500 }
-    );
+    return errors.internal(getErrorMessage(error) || "Failed to create enrollment");
   }
 }
 
-export async function PATCH(request: NextRequest) {
+export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  const parsed = await validateBody(request, patchEnrollmentSchema);
+  if (!parsed.success) return parsed.response;
+
+  const { id, ...updates } = parsed.data;
+  const auth = await requireAcademyAccessForRow("enrollments", id);
+  if (!auth.ok) return auth.response;
+
   try {
-    const body = await request.json();
-    const { id, ...updates } = body;
-
-    if (!id) {
-      return NextResponse.json(
-        { error: "Enrollment ID is required" },
-        { status: 400 }
-      );
-    }
-
     const enrollment = await updateEnrollment(id, updates);
     return NextResponse.json(enrollment);
   } catch (error) {
     console.error("Error updating enrollment:", error);
-    return NextResponse.json(
-      { error: "Failed to update enrollment" },
-      { status: 500 }
-    );
+    return errors.internal("Failed to update enrollment");
   }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
+  const idParam = request.nextUrl.searchParams.get("id");
+  const id = idParam ? parseInt(idParam, 10) : NaN;
+  if (!Number.isFinite(id)) return errors.badRequest("Enrollment ID is required");
+
+  const auth = await requireAcademyAccessForRow("enrollments", id);
+  if (!auth.ok) return auth.response;
+
   try {
-    const { searchParams } = request.nextUrl;
-    const id = searchParams.get("id");
-
-    if (!id) {
-      return NextResponse.json(
-        { error: "Enrollment ID is required" },
-        { status: 400 }
-      );
-    }
-
-    await deleteEnrollment(parseInt(id, 10));
+    await deleteEnrollment(id);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting enrollment:", error);
-    return NextResponse.json(
-      { error: "Failed to delete enrollment" },
-      { status: 500 }
-    );
+    return errors.internal("Failed to delete enrollment");
   }
 }

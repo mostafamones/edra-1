@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
+import { getErrorMessage } from "@/lib/get-error-message";
 
 const supabase: any = getServiceSupabase();
 
@@ -141,10 +142,10 @@ export async function POST(
       student: { id: student.id, name: student.full_name },
       marks: gradedMarks,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error grading student:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to grade student" },
+      { error: getErrorMessage(error) || "Failed to grade student" },
       { status: 500 }
     );
   }

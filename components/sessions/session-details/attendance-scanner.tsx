@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { invalidateAttendance } from "@/lib/hooks/use-attendance"
 import { useStudents } from "@/lib/hooks/use-data"
 import { decodeStudentId, encodeStudentId } from "@/lib/hashid"
+import { getErrorMessage } from "@/lib/get-error-message"
 import type { AttendanceWithStudent, SessionWithSchedule } from "@/lib/types"
 import { AttendanceStatus } from "@/lib/types"
 
@@ -99,8 +100,8 @@ export function AttendanceScanner({
       toast.success(`Marked as ${calculatedStatus}`)
       invalidateAttendance()
       onScanSuccess?.()
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err))
     } finally {
       setIsSubmitting(false)
       setHashId("")

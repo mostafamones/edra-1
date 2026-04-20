@@ -31,7 +31,9 @@ import {
   type FieldType,
   type SelectOption,
 } from "@/components/shared/academy/field-rows"
-import AcademySkeleton from "@/components/shared/academy/skeleton"
+import { AcademySkeleton } from "@/components/shared/academy/skeleton"
+import * as mutations from "@/lib/hooks/mutations"
+import { getErrorMessage } from "@/lib/get-error-message"
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -131,24 +133,19 @@ export function AcademyFields({
     if (addingFieldType === "select" && addingOptions.length < 2) return
     setSavingId("add-field")
     try {
-      const res = await fetch(`/api/fields?academyId=${academyId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          academy_id: academyId,
-          name: addingFieldName.trim(),
-          field_type: addingFieldType,
-          is_required: addingFieldRequired,
-          options: addingFieldType === "select" ? addingOptions.map((o) => o.label) : null,
-        }),
+      await mutations.createField(academyId, {
+        name: addingFieldName.trim(),
+        field_type: addingFieldType,
+        is_required: addingFieldRequired,
+        options:
+          addingFieldType === "select" ? addingOptions.map((o) => o.label) : null,
       })
-      if (!res.ok) throw new Error("Failed to create")
       await refresh()
       setShowAddField(false)
       setAddingOptions([])
     } catch (err) {
       console.error("Error creating field:", err)
-      toast.error("Could not create field.")
+      toast.error(getErrorMessage(err) || "Could not create field.")
     } finally {
       setSavingId(null)
     }
@@ -159,22 +156,18 @@ export function AcademyFields({
     if (editingFieldType === "select" && editingOptions.length < 2) return
     setSavingId(`field-${fieldId}`)
     try {
-      const res = await fetch(`/api/fields/${fieldId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editingFieldName.trim(),
-          field_type: editingFieldType,
-          is_required: editingFieldRequired,
-          options: editingFieldType === "select" ? editingOptions.map((o) => o.label) : null,
-        }),
+      await mutations.updateField(fieldId, {
+        name: editingFieldName.trim(),
+        field_type: editingFieldType,
+        is_required: editingFieldRequired,
+        options:
+          editingFieldType === "select" ? editingOptions.map((o) => o.label) : null,
       })
-      if (!res.ok) throw new Error("Failed to update")
       await refresh()
       setEditingFieldId(null)
     } catch (err) {
       console.error("Error updating field:", err)
-      toast.error("Could not update field.")
+      toast.error(getErrorMessage(err) || "Could not update field.")
     } finally {
       setSavingId(null)
     }
@@ -184,13 +177,12 @@ export function AcademyFields({
     if (!deleteTarget) return
     setSavingId(`delete-${deleteTarget.id}`)
     try {
-      const res = await fetch(`/api/fields/${deleteTarget.id}`, { method: "DELETE" })
-      if (!res.ok) throw new Error("Failed to delete")
+      await mutations.deleteField(deleteTarget.id)
       await refresh()
       setDeleteTarget(null)
     } catch (err) {
       console.error("Error deleting field:", err)
-      toast.error("Could not delete field.")
+      toast.error(getErrorMessage(err) || "Could not delete field.")
     } finally {
       setSavingId(null)
     }

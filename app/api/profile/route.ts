@@ -1,13 +1,17 @@
 import { getInstructor, updateInstructor } from "@/lib/db/instructors";
 import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api/guard";
+import { errors } from "@/lib/api/response";
 
-export async function GET(request: NextRequest) {
+export async function GET(): Promise<NextResponse> {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    if (!user) return errors.unauthorized();
 
     const instructor = await getInstructor(user.id);
 
@@ -48,14 +52,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
+    if (!user) return errors.unauthorized();
 
     const body = await request.json();
     const { full_name, phone } = body;
