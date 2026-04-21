@@ -53,7 +53,7 @@ export function StudentsPageContent({ academyId }: { academyId: string }) {
   if (loading) {
     return (
       <div className="flex flex-col h-[100dvh] overflow-hidden">
-        <SiteHeader title="Students" subtitle="Loading…" />
+        <SiteHeader title="Students" />
         <div className="p-4 lg:p-6 space-y-4">
           <DataSkeleton
             variant="table"

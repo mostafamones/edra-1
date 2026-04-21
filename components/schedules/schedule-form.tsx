@@ -60,7 +60,7 @@ const recurringSlotSchema = z.object({
 })
 
 const oneOffInstanceSchema = z.object({
-  instance_date: z.string().min(1, "All one-off instances must have a date"),
+  instance_date: z.string(),
   start_time: z.string().min(1),
   end_time: z.string(),
 })
@@ -89,6 +89,17 @@ const scheduleFormSchema = z
         code: z.ZodIssueCode.custom,
         path: ["one_off_instances"],
         message: "Add at least one instance",
+      })
+    }
+    if (values.schedule_type === "one_off") {
+      values.one_off_instances.forEach((instance, index) => {
+        if (!instance.instance_date) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["one_off_instances", index, "instance_date"],
+            message: "Date is required",
+          })
+        }
       })
     }
   })
@@ -175,8 +186,33 @@ export function ScheduleForm({
 
   const scheduleType = form.watch("schedule_type")
   const autoAssign = form.watch("auto_assign")
+  const selectedLevelId = form.watch("level_id")
+  const selectedGroupId = form.watch("group_id")
   const isOneOff = scheduleType === "one_off"
   const isSubmitting = form.formState.isSubmitting
+  const filteredGroupOptions = useMemo(
+    () => groupOptions.filter((group) => group.level_id?.toString() === selectedLevelId),
+    [groupOptions, selectedLevelId]
+  )
+  const groupSelectDisabled =
+    groupsLoading || !selectedLevelId || filteredGroupOptions.length === 0
+
+  useEffect(() => {
+    if (!selectedLevelId) {
+      if (selectedGroupId) {
+        form.setValue("group_id", "")
+      }
+      return
+    }
+
+    const hasSelectedGroup = filteredGroupOptions.some(
+      (group) => group.id.toString() === selectedGroupId
+    )
+
+    if (!hasSelectedGroup && selectedGroupId) {
+      form.setValue("group_id", "")
+    }
+  }, [filteredGroupOptions, form, selectedGroupId, selectedLevelId])
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -539,7 +575,11 @@ export function ScheduleForm({
                     <FormLabel>Level</FormLabel>
                     <Select
                       value={field.value || "__none__"}
-                      onValueChange={(val) => field.onChange(val === "__none__" ? "" : val)}
+                      onValueChange={(val) => {
+                        const nextValue = val === "__none__" ? "" : val
+                        field.onChange(nextValue)
+                        form.setValue("group_id", "")
+                      }}
                       disabled={levelsLoading}
                     >
                       <FormControl>
@@ -571,18 +611,26 @@ export function ScheduleForm({
                     <Select
                       value={field.value || "__none__"}
                       onValueChange={(val) => field.onChange(val === "__none__" ? "" : val)}
-                      disabled={groupsLoading || groupOptions.length === 0}
+                      disabled={groupSelectDisabled}
                     >
                       <FormControl>
                         <SelectTrigger className="w-full !h-10">
-                          <SelectValue placeholder="All Groups" />
+                          <SelectValue
+                            placeholder={
+                              !selectedLevelId
+                                ? "Choose a level first"
+                                : filteredGroupOptions.length === 0
+                                  ? "No groups available"
+                                  : "All Groups in this level"
+                            }
+                          />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="p-1">
                         <SelectItem value="__none__" className="h-9">
-                          All Groups
+                          All Groups in this level
                         </SelectItem>
-                        {groupOptions.map((g) => (
+                        {filteredGroupOptions.map((g) => (
                           <SelectItem key={g.id} value={g.id.toString()} className="h-9">
                             {g.name}
                           </SelectItem>
@@ -595,7 +643,8 @@ export function ScheduleForm({
               />
             </div>
             <p className="text-[11px] text-muted-foreground -mt-2">
-              Optionally restrict this schedule to a specific level and/or group.
+              Choose a level first, then optionally narrow the schedule to one of that
+              level&apos;s groups.
             </p>
           </div>
 

@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { IconPencil } from "@tabler/icons-react"
 
 import { SiteHeader } from "@/components/site-header"
+import { PageToolbar, PageToolbarActions, PageToolbarGroup } from "@/components/shell"
 import { Button } from "@/components/ui/button"
 import { DataSkeleton } from "@/components/ui/data-skeleton"
 import { Refresh } from "@/components/ui/refresh"
@@ -46,9 +47,15 @@ export function SessionDetailsView({ academyId, hashId }: SessionDetailsViewProp
         <SiteHeader
           title="Session"
           subtitle="Loading session details…"
-          actions={<Refresh func={refresh} variant="ghost" />}
         />
-        <div className="p-4 lg:p-6">
+        <div className="p-4 lg:p-6 space-y-6">
+          <PageToolbar>
+            <PageToolbarActions>
+              <PageToolbarGroup>
+                <Refresh func={refresh} variant="ghost" />
+              </PageToolbarGroup>
+            </PageToolbarActions>
+          </PageToolbar>
           <DataSkeleton variant="detail" />
         </div>
       </>
@@ -68,34 +75,57 @@ export function SessionDetailsView({ academyId, hashId }: SessionDetailsViewProp
         ]}
         back={() => router.push(withAcademyPath(pathname, "/sessions"))}
         separator
-        actions={
-          <div className="flex items-center gap-2">
-            <Refresh func={refresh} variant="ghost" />
-            <Button
-              variant="ghost"
-              className="gap-1.5"
-              onClick={() => setIsEditing((v) => !v)}
-            >
-              <IconPencil className="size-4" />
-              {isEditing ? "Close edit" : "Edit session"}
-            </Button>
-          </div>
-        }
       />
 
       {isEditing ? (
-        <SessionEditForm
-          academyId={academyId}
-          session={session}
-          onCancel={() => setIsEditing(false)}
-          onSuccess={() => {
-            toast.success("Session updated")
-            setIsEditing(false)
-            refresh()
-          }}
-        />
+        <>
+          <div className="px-4 lg:px-6 pt-0 pb-6">
+            <PageToolbar>
+              <PageToolbarActions>
+                <PageToolbarGroup>
+                  <Refresh func={refresh} variant="ghost" />
+                  <Button
+                    variant="ghost"
+                    className="gap-1.5"
+                    onClick={() => setIsEditing((v) => !v)}
+                  >
+                    <IconPencil className="size-4" />
+                    {isEditing ? "Close edit" : "Edit session"}
+                  </Button>
+                </PageToolbarGroup>
+              </PageToolbarActions>
+            </PageToolbar>
+          </div>
+          <SessionEditForm
+            academyId={academyId}
+            session={session}
+            onCancel={() => setIsEditing(false)}
+            onSuccess={() => {
+              toast.success("Session updated")
+              setIsEditing(false)
+              refresh()
+            }}
+          />
+        </>
       ) : (
         <div className="pb-10">
+          <div className="px-4 lg:px-6 pt-0 pb-6">
+            <PageToolbar>
+              <PageToolbarActions>
+                <PageToolbarGroup>
+                  <Refresh func={refresh} variant="ghost" />
+                  <Button
+                    variant="ghost"
+                    className="gap-1.5"
+                    onClick={() => setIsEditing((v) => !v)}
+                  >
+                    <IconPencil className="size-4" />
+                    {isEditing ? "Close edit" : "Edit session"}
+                  </Button>
+                </PageToolbarGroup>
+              </PageToolbarActions>
+            </PageToolbar>
+          </div>
           <SessionSummary session={session} attendanceData={attendance || []} onRefresh={refresh} />
           <div className="px-4 lg:px-6 mt-6 space-y-6">
             {session.status === "live" && (

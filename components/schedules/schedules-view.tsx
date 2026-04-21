@@ -9,6 +9,12 @@ import { getErrorMessage } from "@/lib/get-error-message"
 import type { ScheduleWithRelations, ScheduleTimeSlot } from "@/lib/types"
 
 import { SiteHeader } from "@/components/site-header"
+import {
+  PageToolbar,
+  PageToolbarActions,
+  PageToolbarGroup,
+  PageToolbarSearch,
+} from "@/components/shell"
 import { withAcademyPath } from "@/components/helpers/sidebar"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Refresh } from "@/components/ui/refresh"
@@ -37,6 +43,18 @@ export type SchedulesViewProps = {
 type ScheduleViewMode = "list" | "calendar"
 
 const STORAGE_KEY = "edra:schedules-view-mode"
+
+function getScheduleSearchString(schedule: ScheduleWithRelations): string {
+  return [
+    schedule.name,
+    schedule.level?.name,
+    schedule.group?.name,
+    schedule.schedule_type === "one_off" ? "one off" : "recurring",
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+}
 
 function normalizeDayOfWeek(value: number | null | undefined): number {
   if (value === null || value === undefined) return -1
@@ -71,6 +89,7 @@ export function SchedulesView({ academyId }: SchedulesViewProps) {
   const { data: schedules, loading, refresh: refreshSchedules } = useSchedules(academyId)
 
   const [viewMode, setViewMode] = useState<ScheduleViewMode>("list")
+  const [searchQuery, setSearchQuery] = useState("")
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editingSchedule, setEditingSchedule] = useState<ScheduleWithRelations | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<ScheduleWithRelations | null>(null)
@@ -120,8 +139,17 @@ export function SchedulesView({ academyId }: SchedulesViewProps) {
     setSheetOpen(true)
   }, [])
 
+  const filteredSchedules = useMemo(() => {
+    if (!schedules) return []
+
+    const query = searchQuery.trim().toLowerCase()
+    if (!query) return schedules
+
+    return schedules.filter((schedule) => getScheduleSearchString(schedule).includes(query))
+  }, [schedules, searchQuery])
+
   const { recurringRows, oneOffRows, activeDays, unscheduledRows } = useMemo(() => {
-    if (!schedules || schedules.length === 0) {
+    if (filteredSchedules.length === 0) {
       return {
         recurringRows: [] as ScheduleRow[],
         oneOffRows: [] as ScheduleRow[],
@@ -135,7 +163,7 @@ export function SchedulesView({ academyId }: SchedulesViewProps) {
     const unscheduledRows: ScheduleRow[] = []
     const DAYS_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
-    for (const schedule of schedules) {
+    for (const schedule of filteredSchedules) {
       const slots = schedule.time_slots || []
 
       if (schedule.schedule_type === "one_off") {
@@ -203,50 +231,40 @@ export function SchedulesView({ academyId }: SchedulesViewProps) {
     const activeDays = schedulesByDay.filter((d) => d.rows.length > 0)
 
     return { recurringRows, oneOffRows, activeDays, unscheduledRows }
-  }, [schedules])
+  }, [filteredSchedules])
 
   const { recurringSchedules, oneOffSchedules } = useMemo(() => {
-    if (!schedules || schedules.length === 0) {
+    if (filteredSchedules.length === 0) {
       return { recurringSchedules: 0, oneOffSchedules: 0 }
     }
 
-    const recurringSchedules = schedules.filter((s) => s.schedule_type !== "one_off").length
-    const oneOffSchedules = schedules.filter((s) => s.schedule_type === "one_off").length
+    const recurringSchedules = filteredSchedules.filter((s) => s.schedule_type !== "one_off").length
+    const oneOffSchedules = filteredSchedules.filter((s) => s.schedule_type === "one_off").length
 
     return { recurringSchedules, oneOffSchedules }
-  }, [schedules])
+  }, [filteredSchedules])
 
   const allRows = useMemo(
     () => [...recurringRows, ...oneOffRows] as { schedule: ScheduleWithRelations; timeSlot: ScheduleTimeSlot }[],
     [recurringRows, oneOffRows]
   )
 
-  const subtitle = schedules?.length
-    ? `${schedules.length} schedule${schedules.length !== 1 ? "s" : ""}`
+  const subtitle = filteredSchedules.length
+    ? `${filteredSchedules.length} schedule${filteredSchedules.length !== 1 ? "s" : ""}`
     : "No schedules yet"
 
-  const headerControls = (
-    <div className="flex">
-      <Refresh func={refreshSchedules} variant="ghost" />
-      <Button className="gap-1.5" variant="ghost" onClick={openCreatePage}>
-        <IconPlus className="size-4" />
-        Add Schedule
-      </Button>
-    </div>
-  )
-
-  const tabs = (
+  const viewToggle = (
     <ButtonGroup>
       <Button
         onClick={() => setViewMode("list")}
-        variant={viewMode === "list" ? "default" : "ghost"}
+        variant={viewMode === "list" ? "default" : "outline"}
         size="icon"
       >
         <IconList className={`size-4 ${viewMode === "list" ? "text-white" : "text-muted-foreground"}`} />
       </Button>
       <Button
         onClick={() => setViewMode("calendar")}
-        variant={viewMode === "calendar" ? "default" : "ghost"}
+        variant={viewMode === "calendar" ? "default" : "outline"}
         size="icon"
       >
         <IconCalendarWeek className={`size-4 ${viewMode === "calendar" ? "text-white" : "text-muted-foreground"}`} />
@@ -312,61 +330,71 @@ export function SchedulesView({ academyId }: SchedulesViewProps) {
   const isLoading = loading || !schedules
 
   return (
-    <>
-      <SiteHeader
-        title="Schedules"
-        subtitle={loading ? "Manage your schedules" : subtitle}
-        actions={headerControls}
-        tabs={tabs}
-      />
+    <div className="flex h-[100dvh] flex-col overflow-hidden">
+      <SiteHeader title="Schedules" />
 
-      <div className={`p-4 lg:p-6 space-y-6 ${viewMode === "calendar" ? "flex flex-col flex-1" : ""}`}>
+      <main
+        className={`flex-1 overflow-y-auto px-4 py-4 lg:px-6 ${
+          viewMode === "calendar" ? "flex min-h-0 flex-col" : ""
+        }`}
+      >
+        <div className={`space-y-6 ${viewMode === "calendar" ? "flex min-h-0 flex-1 flex-col" : ""}`}>
+        <PageToolbar>
+          <PageToolbarSearch
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+            placeholder="Search schedules..."
+            disabled={loading}
+          />
+          <PageToolbarActions>
+            <PageToolbarGroup>
+              {viewToggle}
+            </PageToolbarGroup>
+            <PageToolbarGroup>
+              <Refresh func={refreshSchedules} variant="outline" />
+              <Button className="gap-1.5" variant="outline" onClick={openCreatePage}>
+                <IconPlus className="size-4" />
+                Add Schedule
+              </Button>
+            </PageToolbarGroup>
+          </PageToolbarActions>
+        </PageToolbar>
+
         {isLoading ? (
-          <div className={`space-y-6 ${viewMode === "calendar" ? "flex-1 min-h-0" : ""}`}>
+          <div className={`space-y-6 ${viewMode === "calendar" ? "flex min-h-0 flex-1 flex-col" : ""}`}>
             {viewMode === "list" ? <ListViewSkeleton /> : <CalendarViewSkeleton />}
           </div>
-        ) : schedules.length === 0 ? (
+        ) : filteredSchedules.length === 0 ? (
           <Empty>
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 <IconRefresh className="size-4" />
               </EmptyMedia>
-              <EmptyTitle>No schedules yet</EmptyTitle>
-              <EmptyDescription>Create a schedule to start organizing sessions.</EmptyDescription>
+              <EmptyTitle>
+                {searchQuery.trim() ? "No schedules match your search" : "No schedules yet"}
+              </EmptyTitle>
+              <EmptyDescription>
+                {searchQuery.trim()
+                  ? "Try a different search term."
+                  : "Create a schedule to start organizing sessions."}
+              </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
+              {searchQuery.trim() ? (
+                <Button variant="outline" onClick={() => setSearchQuery("")}>
+                  Clear Search
+                </Button>
+              ) : (
               <Button onClick={openCreatePage} className="gap-1.5">
                 <IconPlus className="size-4" />
                 Add Schedule
               </Button>
+              )}
             </EmptyContent>
           </Empty>
         ) : (
           <>
-            {viewMode === "list" && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 rounded-lg border bg-muted/20 px-4 py-3">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
-                    <IconRefresh className="size-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Recurring</p>
-                    <p className="text-2xl font-semibold">{recurringSchedules}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 rounded-lg border bg-muted/20 px-4 py-3">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
-                    <IconCalendarWeek className="size-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">One-off</p>
-                    <p className="text-2xl font-semibold">{oneOffSchedules}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className={`space-y-6 ${viewMode === "calendar" ? "flex-1 min-h-0" : ""}`}>
+            <div className={`space-y-6 ${viewMode === "calendar" ? "flex min-h-0 flex-1 flex-col" : ""}`}>
               {viewMode === "list" ? (
                 <ScheduleListView
                   activeDays={activeDays}
@@ -382,7 +410,8 @@ export function SchedulesView({ academyId }: SchedulesViewProps) {
             </div>
           </>
         )}
-      </div>
+        </div>
+      </main>
 
       <ScheduleSheet
         open={sheetOpen}
@@ -404,7 +433,7 @@ export function SchedulesView({ academyId }: SchedulesViewProps) {
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
       />
-    </>
+    </div>
   )
 }
 

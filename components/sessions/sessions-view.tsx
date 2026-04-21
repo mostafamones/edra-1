@@ -9,6 +9,12 @@ import type { ColumnOrderState, RowSelectionState, VisibilityState } from "@tans
 import { IconCalendar, IconPlus } from "@tabler/icons-react"
 
 import { SiteHeader } from "@/components/site-header"
+import {
+  PageToolbar,
+  PageToolbarActions,
+  PageToolbarGroup,
+  PageToolbarSearch,
+} from "@/components/shell"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { DataTableBulkActions } from "@/components/ui/data-table-bulk-actions"
@@ -16,7 +22,6 @@ import { ActiveFilterBadges, type ActiveFilter } from "@/components/ui/active-fi
 import { DataTableFilterPopover } from "@/components/ui/data-table-filter-popover"
 import { DraggableColumnDropdown } from "@/components/ui/draggable-column-dropdown"
 import { Refresh } from "@/components/ui/refresh"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -289,37 +294,32 @@ export function SessionsView({ academyId }: SessionsViewProps) {
     [goToDetails]
   )
 
-  const headerActions = (
-    <div className="flex items-center gap-2">
-      <Refresh func={refreshSessions} variant="ghost" />
-      <Button variant="ghost" className="gap-1.5" onClick={openStartSession}>
-        <IconPlus className="size-4" />
-        Start Session
-      </Button>
-    </div>
-  )
-
   return (
-    <>
+    <div className="flex h-[100dvh] flex-col overflow-hidden">
       <SiteHeader
         title="Sessions"
         subtitle="Track attendance and session history"
-        actions={headerActions}
       />
 
-      <div className="p-4 lg:p-6 space-y-4">
+      <main className="flex-1 overflow-y-auto px-4 py-4 lg:px-6">
+        <div className="space-y-4">
         <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex-1">
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search sessions..."
-                disabled={loading}
-                className="max-w-lg"
-              />
-            </div>
-            <div className="flex items-center gap-2 justify-end">
+          <PageToolbar>
+            <PageToolbarSearch
+              value={searchQuery}
+              onValueChange={setSearchQuery}
+              placeholder="Search sessions..."
+              disabled={loading}
+            />
+            <PageToolbarActions>
+              <PageToolbarGroup>
+                <Refresh func={refreshSessions} variant="outline" />
+                <Button variant="outline" className="gap-1.5" onClick={openStartSession}>
+                  <IconPlus className="size-4" />
+                  Start Session
+                </Button>
+              </PageToolbarGroup>
+              <PageToolbarGroup>
               <DataTableFilterPopover activeFilterCount={activeFilterCount} onClear={resetFilters}>
                 <Select
                   value={levelFilter}
@@ -411,7 +411,9 @@ export function SessionsView({ academyId }: SessionsViewProps) {
                   <Switch checked={showArchived} onCheckedChange={setShowArchived} />
                 </div>
               </DataTableFilterPopover>
+              </PageToolbarGroup>
 
+              <PageToolbarGroup>
               <DraggableColumnDropdown
                 columns={columns}
                 columnVisibility={columnVisibility}
@@ -423,8 +425,9 @@ export function SessionsView({ academyId }: SessionsViewProps) {
                 fixedStartColumns={["select"]}
                 fixedEndColumns={["actions"]}
               />
-            </div>
-          </div>
+              </PageToolbarGroup>
+            </PageToolbarActions>
+          </PageToolbar>
 
           <ActiveFilterBadges
             filters={activeFilters}
@@ -471,7 +474,8 @@ export function SessionsView({ academyId }: SessionsViewProps) {
           onRowClick={goToDetails}
           emptyMessage={activeFilterCount > 0 ? "No sessions match your filters" : "No sessions yet"}
         />
-      </div>
+        </div>
+      </main>
 
       <ConfirmDialog
         variant="delete"
@@ -515,7 +519,7 @@ export function SessionsView({ academyId }: SessionsViewProps) {
         academyId={academyId}
         onSuccess={refreshSessions}
       />
-    </>
+    </div>
   )
 }
 

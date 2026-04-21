@@ -97,6 +97,8 @@ export function ScheduleSheet({
   const [oneOffInstances, setOneOffInstances] = useState<OneOffInstanceEntry[]>([
     { key: generateId(), instance_date: "", start_time: "08:00", end_time: "" },
   ])
+  const filteredGroups = groups.filter((group) => group.level_id?.toString() === formData.level_id)
+  const groupSelectDisabled = !formData.level_id || filteredGroups.length === 0
 
   useEffect(() => {
     if (!(open && academyId)) return
@@ -165,6 +167,21 @@ export function ScheduleSheet({
       setOneOffInstances([{ key: generateId(), instance_date: "", start_time: "08:00", end_time: "" }])
     }
   }, [open, schedule])
+
+  useEffect(() => {
+    if (!formData.level_id) {
+      setFormData((prev) => (prev.group_id ? { ...prev, group_id: "" } : prev))
+      return
+    }
+
+    const groupStillMatches = filteredGroups.some(
+      (group) => group.id.toString() === formData.group_id
+    )
+
+    if (!groupStillMatches && formData.group_id) {
+      setFormData((prev) => ({ ...prev, group_id: "" }))
+    }
+  }, [filteredGroups, formData.group_id, formData.level_id])
 
   const addRecurringSlot = () => {
     setRecurringSlots((prev) => [
@@ -510,7 +527,13 @@ export function ScheduleSheet({
                   <Label htmlFor="level">Level</Label>
                   <Select
                     value={formData.level_id}
-                    onValueChange={(val) => setFormData({ ...formData, level_id: val === "__none__" ? "" : val })}
+                    onValueChange={(val) =>
+                      setFormData({
+                        ...formData,
+                        level_id: val === "__none__" ? "" : val,
+                        group_id: "",
+                      })
+                    }
                   >
                     <SelectTrigger id="level">
                       <SelectValue placeholder="All Levels" />
@@ -530,14 +553,22 @@ export function ScheduleSheet({
                   <Select
                     value={formData.group_id}
                     onValueChange={(val) => setFormData({ ...formData, group_id: val === "__none__" ? "" : val })}
-                    disabled={groups.length === 0}
+                    disabled={groupSelectDisabled}
                   >
                     <SelectTrigger id="group">
-                      <SelectValue placeholder="All Groups" />
+                      <SelectValue
+                        placeholder={
+                          !formData.level_id
+                            ? "Choose a level first"
+                            : filteredGroups.length === 0
+                              ? "No groups available"
+                              : "All Groups in this level"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">All Groups</SelectItem>
-                      {groups.map((g: Group) => (
+                      <SelectItem value="__none__">All Groups in this level</SelectItem>
+                      {filteredGroups.map((g: Group) => (
                         <SelectItem key={g.id} value={g.id.toString()}>
                           {g.name}
                         </SelectItem>
@@ -547,7 +578,8 @@ export function ScheduleSheet({
                 </div>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Optionally restrict this schedule to a specific level and/or group.
+                Choose a level first, then optionally narrow the schedule to one of that
+                level&apos;s groups.
               </p>
             </div>
 

@@ -22,7 +22,6 @@ type SiteHeaderProps = {
   title?: React.ReactNode
   variant?: 'default' | 'mini' | 'transparent'
   trigger?: boolean
-  actions?: React.ReactNode
   subtitle?: React.ReactNode
   tabs?: React.ReactNode
   back?: () => void
@@ -36,7 +35,6 @@ export function SiteHeader({
   title,
   variant = "default",
   trigger = true,
-  actions,
   subtitle,
   tabs,
   back,
@@ -60,7 +58,7 @@ export function SiteHeader({
           </>
         )}
         
-        <div className="flex min-w-0 font-[Outfit] gap-2 items-center">
+        <div className="flex min-w-0 flex-1 font-[Outfit] gap-2 items-center">
           {back && <>
             <Button size="icon-sm" variant="ghost" onClick={back}>
               <IconArrowLeft className="size-4" />
@@ -88,29 +86,20 @@ export function SiteHeader({
           )}
 
           {/* Title and Subtitle */}
-          {!breadcrumb && <div className={cn("flex flex-col", breadcrumb && "ml-2")}>
+          {!breadcrumb && <div className={cn("flex min-w-0 flex-1 flex-col", breadcrumb && "ml-2")}>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-medium">{title}</h1>
+              <h1 className="truncate text-lg font-medium">{title}</h1>
               {loading && <IconLoader2 className="size-4 animate-spin text-muted-foreground" />}
             </div>
-            {subtitle && <h2 className="text-sm text-muted-foreground -mt-1">{subtitle}</h2>}
+            {subtitle && <h2 className="truncate text-sm text-muted-foreground -mt-1">{subtitle}</h2>}
           </div>}
         </div>
 
-        {(tabs || actions) && (
+        {tabs && (
           <div className="ml-auto flex gap-2">
-            {tabs && <div className="flex items-center p-1 gap-3 bg-card rounded-xl drop-shadow-md">
+            <div className="flex items-center p-1 gap-3 bg-card rounded-xl drop-shadow-md">
               {tabs}
-            </div>}
-            {actions && (
-              <div className={cn(
-                "flex items-center p-1 bg-card rounded-xl drop-shadow-md",
-                !tabs && "ml-auto"
-              )}>
-                {/* ModeToggle hidden – dark mode forced globally */}
-                {actions}
-              </div>
-            )}
+            </div>
           </div>
         )}
       </div>

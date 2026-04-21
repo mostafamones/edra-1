@@ -18,7 +18,7 @@ export function PageToolbar({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 lg:flex-row lg:items-center",
+        "flex w-full min-w-0 flex-col gap-2 lg:flex-row lg:items-center",
         className
       )}
       {...props}
@@ -74,7 +74,7 @@ export function PageToolbarActions({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-2 lg:ml-auto lg:justify-end",
+        "flex w-full flex-wrap items-center gap-2 lg:ml-auto lg:w-auto lg:justify-end",
         className
       )}
       {...props}
