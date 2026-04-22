@@ -112,38 +112,7 @@ export async function apiFetchFull<T>(
  * Unwrap a JSON API response to its `data` payload. Throws an {@link ApiError}
  * on HTTP errors or enveloped `success: false` responses.
  */
-export async function apiFetch<T>(
-  input: RequestInfo | URL,
-  init?: RequestInit
-): Promise<T> {
-  const { data } = await apiFetchFull<T>(input, init);
+export async function apiFetch<T>(url: string): Promise<T> {
+  const { data } = await apiFetchFull<T>(url);
   return data;
 }
-
-/** Convenience wrappers for the common verbs with JSON bodies. */
-export const api = {
-  get: <T>(url: string, init?: RequestInit) => apiFetch<T>(url, init),
-  post: <T>(url: string, body?: unknown, init?: RequestInit) =>
-    apiFetch<T>(url, {
-      ...init,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    }),
-  patch: <T>(url: string, body?: unknown, init?: RequestInit) =>
-    apiFetch<T>(url, {
-      ...init,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    }),
-  put: <T>(url: string, body?: unknown, init?: RequestInit) =>
-    apiFetch<T>(url, {
-      ...init,
-      method: "PUT",
-      headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    }),
-  delete: <T>(url: string, init?: RequestInit) =>
-    apiFetch<T>(url, { ...init, method: "DELETE" }),
-};

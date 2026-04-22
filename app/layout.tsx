@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Metadata } from "next";
 import { AuthProvider } from "@/components/auth-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { Providers } from "@/components/provider";
 
 const outfit = Outfit({subsets:['latin'],variable:'--font-sans'})
 const fontMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
@@ -26,17 +27,19 @@ export default async function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", outfit.variable)}
-    >
+        lang="en"
+        suppressHydrationWarning
+        className={cn("antialiased", fontMono.variable, "font-sans", outfit.variable)}
+      >
       <body suppressHydrationWarning>
         <ThemeProvider>
           <AuthProvider>
-            <TooltipProvider>
-              {children}
-              <Toaster />
-            </TooltipProvider>
+            <Providers>
+              <TooltipProvider>
+                {children}
+                <Toaster />
+              </TooltipProvider>
+            </Providers>
           </AuthProvider>
         </ThemeProvider>
       </body>
