@@ -179,14 +179,14 @@ export function OptionAddRow({ onAdd }: { onAdd: () => void }) {
       >
         Add option
       </Button>
-      <p className="text-sm text-muted-foreground -mx-1">or</p>
+      {/* <p className="text-sm text-muted-foreground -mx-1">or</p>
       <Button
         variant="link"
         onClick={onAdd}
         className="text-primary hover:text-primary/80 justify-start px-0 font-normal"
       >
         Add &quot;Other&quot;
-      </Button>
+      </Button> */}
     </div>
   )
 }

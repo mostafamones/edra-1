@@ -20,8 +20,6 @@ import {
 import { toast } from "sonner"
 import { IconAlertTriangle } from "@tabler/icons-react"
 import type { AttendanceWithStudent, SessionWithSchedule } from "@/lib/types"
-import { invalidateAttendance } from "@/lib/hooks/use-attendance"
-import { api } from "@/lib/api/client"
 import * as sessionMutations from "@/lib/hooks/mutations"
 import { getErrorMessage } from "@/lib/get-error-message"
 
@@ -44,16 +42,12 @@ export function AnomalyResolutionDialog({
 
   const handleResolutionChange = async (studentId: number, note: string) => {
     try {
-      await api.put("/api/attendance", {
-        studentId,
-        sessionId: session.id,
-        academyId: session.academy_id,
+      await sessionMutations.updateStudentRaw(studentId, {
         note,
       })
-      invalidateAttendance()
       onSuccess?.()
     } catch (err) {
-      toast.error(getErrorMessage(err) || "Failed to save resolution")
+      toast.error(getErrorMessage(err) || "Could not update attendance")
     }
   }
 

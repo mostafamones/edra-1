@@ -28,15 +28,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className={open ? "px-2" : "mt-1"}>
+      <SidebarHeader>
         <AcademySwitcher />
       </SidebarHeader>
-      <SidebarContent className={open ? "px-2" : ""}>
+      <SidebarContent className={open ? "px-1" : ""}>
         <NavMain items={MainSidebarData} />
         {/* <NavDocuments items={SidebarNotes} /> */}
         <NavSecondary items={SecondarySidebarData} className="mt-auto" />
       </SidebarContent>
-      <SidebarFooter className={open ? "" : "mb-2"}>
+      <SidebarFooter>
         <NavUser user={{ name: userName, email: userEmail, avatar: avatarUrl }} />
       </SidebarFooter>
     </Sidebar>

@@ -29,6 +29,6 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
-  ],
+, "feat/onboarding/components/stepper"  ],
   "exclude": ["node_modules"]
 }

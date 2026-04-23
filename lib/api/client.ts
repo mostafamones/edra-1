@@ -116,3 +116,36 @@ export async function apiFetch<T>(url: string): Promise<T> {
   const { data } = await apiFetchFull<T>(url);
   return data;
 }
+
+async function jsonRequest<T>(
+  method: string,
+  url: string,
+  body?: unknown
+): Promise<T> {
+  const init: RequestInit = { method };
+  if (body !== undefined) {
+    init.headers = { "Content-Type": "application/json" };
+    init.body = JSON.stringify(body);
+  }
+  const { data } = await apiFetchFull<T>(url, init);
+  return data;
+}
+
+/**
+ * Convenience client for JSON mutations (POST / PUT / PATCH / DELETE).
+ * Unwraps the standard API envelope the same way as {@link apiFetch}.
+ */
+export const api = {
+  post<T>(url: string, body?: unknown): Promise<T> {
+    return jsonRequest<T>("POST", url, body);
+  },
+  put<T>(url: string, body?: unknown): Promise<T> {
+    return jsonRequest<T>("PUT", url, body);
+  },
+  patch<T>(url: string, body?: unknown): Promise<T> {
+    return jsonRequest<T>("PATCH", url, body);
+  },
+  async delete(url: string, init?: RequestInit): Promise<void> {
+    await apiFetchFull<unknown>(url, { ...init, method: "DELETE" });
+  },
+};

@@ -1,6 +1,6 @@
 "use client"
 
-import { CreateAcademyStepper } from "@/components/create/stepper"
+import { CreateAcademyStepper } from "@/feat/onboarding"
 import LiquidEther from "@/components/LiquidEther"
 
 export default function CreateAcademyPage() {

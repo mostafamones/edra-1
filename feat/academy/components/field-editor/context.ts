@@ -5,13 +5,13 @@ import { IconAbc } from "@tabler/icons-react"
 // CONTEXT — lets all sub-components access field type registry
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { FieldTypeDef } from "../field-editor"
+import type { FieldTypeDef } from "./types"
 
 interface FieldEditorContextValue {
   fieldTypes: Record<string, FieldTypeDef>
 }
 
-const FieldEditorContext = React.createContext<FieldEditorContextValue | null>(null)
+export const FieldEditorContext = React.createContext<FieldEditorContextValue | null>(null)
 
 export function useFieldTypes() {
   const ctx = React.useContext(FieldEditorContext)

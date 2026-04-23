@@ -29,7 +29,7 @@ import {
 } from "@tabler/icons-react"
 import { cn } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
-import { useFieldTypes, resolveFieldType } from "./context"
+import { FieldEditorContext, useFieldTypes, resolveFieldType } from "./context"
 import { FieldRow } from "./field-row"          
 import { OptionsPanel } from "./options-panel"
 import { AddFieldState, AddFieldHandlers, EditFieldState, EditFieldHandlers, CustomField, FieldId, FieldTypeDef } from "./types"
@@ -209,7 +209,7 @@ function FieldItem<TId extends FieldId>({
   const hasOptions = !!config.hasOptions
 
   return (
-    <Card>
+    <Card className="p-0 gap-0">
       {isEditing ? (
         <FieldItemEdit
           editState={editState}
@@ -263,7 +263,7 @@ function FieldItemDisplay<TId extends FieldId>({
   kebabMenu,
 }: FieldItemDisplayProps<TId>) {
   return (
-    <CardContent>
+    <CardContent className="p-0 gap-0 px-0">
       <div className="flex items-center gap-3 px-3 h-15 hover:bg-muted/30 transition-colors">
         {hasOptions ? (
           <button
@@ -523,43 +523,45 @@ export function FieldEditor<TId extends FieldId>({
   const showEmptyState = fields.length === 0 && !addState.isOpen
 
   return (
-    <div className={cn("flex flex-col gap-3", className)}>
-      {!hideAddSection && (
-        <FieldAddSection
-          state={addState}
-          handlers={addHandlers}
-          confirmDisabled={addConfirmDisabled}
-          canShowCta={canShowAddFieldCta && !disabled}
-          className={addSectionClassName}
-        />
-      )}
-
-      <div className={cn("flex flex-col gap-3", listClassName)}>
-        {fields.map((field) => (
-          <FieldItem
-            key={String(field.id)}
-            field={field}
-            isEditing={editState.fieldId === field.id}
-            isExpanded={expandedFields.has(field.id)}
-            editState={editState}
-            editHandlers={editHandlers}
-            editConfirmDisabled={editConfirmDisabled}
-            onToggleExpand={() => onToggleExpandField(field.id)}
-            onRequestDelete={() => onRequestDeleteField(field)}
-            disabled={disabled}
-            kebabMenu={kebabMenu}
-            className={itemClassName}
-          />
-        ))}
-
-        {showEmptyState && (
-          <FieldEmptyState
-            showCta={canShowAddFieldCta && !disabled}
-            onOpenAddField={addHandlers.onOpen}
-            className={emptyStateClassName}
+    <FieldEditorContext.Provider value={ctx}>
+      <div className={cn("flex flex-col gap-3", className)}>
+        {!hideAddSection && (
+          <FieldAddSection
+            state={addState}
+            handlers={addHandlers}
+            confirmDisabled={addConfirmDisabled}
+            canShowCta={canShowAddFieldCta && !disabled}
+            className={addSectionClassName}
           />
         )}
+
+        <div className={cn("flex flex-col gap-3", listClassName)}>
+          {fields.map((field) => (
+            <FieldItem
+              key={String(field.id)}
+              field={field}
+              isEditing={editState.fieldId === field.id}
+              isExpanded={expandedFields.has(field.id)}
+              editState={editState}
+              editHandlers={editHandlers}
+              editConfirmDisabled={editConfirmDisabled}
+              onToggleExpand={() => onToggleExpandField(field.id)}
+              onRequestDelete={() => onRequestDeleteField(field)}
+              disabled={disabled}
+              kebabMenu={kebabMenu}
+              className={itemClassName}
+            />
+          ))}
+
+          {showEmptyState && (
+            <FieldEmptyState
+              showCta={canShowAddFieldCta && !disabled}
+              onOpenAddField={addHandlers.onOpen}
+              className={emptyStateClassName}
+            />
+          )}
+        </div>
       </div>
-    </div>
+    </FieldEditorContext.Provider>
   )
 }

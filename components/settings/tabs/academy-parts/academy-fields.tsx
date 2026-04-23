@@ -1,15 +1,12 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { IconEye } from "@tabler/icons-react"
 import {
   CardContent,
   CardHeader,
-  CardTitle,
-  CardDescription,
 } from "@/components/ui/card"
 import {
   AlertDialog,
@@ -23,23 +20,21 @@ import {
 import { toast } from "sonner"
 import { useFields } from "@/lib/hooks/use-data"
 import {
-  FieldEditorRows,
+  FieldEditor,
   FieldAddButton,
   FieldAddSection,
+  FieldEditorContext,
+  defaultFieldTypes,
   makeOptionId,
   type CustomField,
-  type FieldType,
   type SelectOption,
-} from "@/components/shared/academy/field-rows"
-import { AcademySkeleton } from "@/components/shared/academy/skeleton"
+  type AddFieldState,
+  type AddFieldHandlers,
+  type EditFieldState,
+  type EditFieldHandlers,
+} from "@/feat/academy"
 import * as mutations from "@/lib/hooks/mutations"
 import { getErrorMessage } from "@/lib/get-error-message"
-
-// ── Local types ───────────────────────────────────────────────────────────────
-
-type AcademyCustomField = CustomField<number> & {
-  // ensures the id is number-typed (from Supabase)
-}
 
 function toOptions(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -50,7 +45,15 @@ function toOptions(value: unknown): string[] {
   return []
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+function AcademyFieldsSkeleton() {
+  return (
+    <div className="flex flex-col gap-3 px-6 py-4">
+      <Skeleton className="h-15 w-full" />
+      <Skeleton className="h-15 w-full" />
+      <Skeleton className="h-15 w-full" />
+    </div>
+  )
+}
 
 export function AcademyFields({
   disabled,
@@ -67,38 +70,32 @@ export function AcademyFields({
     refresh,
   } = useFields(academyId ?? null)
 
-  const fields: AcademyCustomField[] = useMemo(() => {
+  const fields: CustomField<number>[] = useMemo(() => {
     return (fieldsData ?? []).map((f) => ({
       id: f.id,
       name: f.name,
-      field_type: ((f.field_type as FieldType) || "text") as FieldType,
+      field_type: typeof f.field_type === "string" && f.field_type.length > 0 ? f.field_type : "text",
       is_required: f.is_required === true,
       options: toOptions(f.options),
     }))
   }, [fieldsData])
 
-  // Inline editing state
   const [editingFieldId, setEditingFieldId] = useState<number | null>(null)
   const [editingFieldName, setEditingFieldName] = useState("")
-  const [editingFieldType, setEditingFieldType] = useState<FieldType>("text")
+  const [editingFieldType, setEditingFieldType] = useState<string>("text")
   const [editingFieldRequired, setEditingFieldRequired] = useState(false)
   const [editingOptions, setEditingOptions] = useState<SelectOption[]>([])
 
-  // Adding state
   const [showAddField, setShowAddField] = useState(false)
   const [addingFieldName, setAddingFieldName] = useState("")
-  const [addingFieldType, setAddingFieldType] = useState<FieldType>("text")
+  const [addingFieldType, setAddingFieldType] = useState<string>("text")
   const [addingFieldRequired, setAddingFieldRequired] = useState(false)
   const [addingOptions, setAddingOptions] = useState<SelectOption[]>([])
 
-  // Expand (select fields)
   const [expandedFields, setExpandedFields] = useState<Set<number>>(new Set())
 
-  // Delete confirm
-  const [deleteTarget, setDeleteTarget] = useState<AcademyCustomField | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<CustomField<number> | null>(null)
   const [savingId, setSavingId] = useState<string | null>(null)
-
-  // ── Helpers ──────────────────────────────────────────────────────────────────
 
   const toggleExpanded = (id: number) => {
     setExpandedFields((prev) => {
@@ -125,8 +122,6 @@ export function AcademyFields({
     setEditingFieldRequired(field.is_required === true)
     setEditingOptions((field.options ?? []).map((label) => ({ id: makeOptionId(), label })))
   }
-
-  // ── CRUD ─────────────────────────────────────────────────────────────────────
 
   const handleAddField = async () => {
     if (!academyId || !addingFieldName.trim()) return
@@ -188,8 +183,6 @@ export function AcademyFields({
     }
   }
 
-  // ── Disabled states ───────────────────────────────────────────────────────────
-
   const addConfirmDisabled =
     !addingFieldName.trim() ||
     (addingFieldType === "select" && addingOptions.length < 2) ||
@@ -200,11 +193,45 @@ export function AcademyFields({
     (editingFieldType === "select" && editingOptions.length < 2) ||
     (editingFieldId !== null && savingId === `field-${editingFieldId}`)
 
-  // ── Loading skeleton ──────────────────────────────────────────────────────────
+  const addState: AddFieldState = {
+    name: addingFieldName,
+    fieldType: addingFieldType,
+    isRequired: addingFieldRequired,
+    options: addingOptions,
+    isOpen: showAddField,
+  }
 
-  if (loading) return <AcademySkeleton />
+  const addHandlers: AddFieldHandlers = {
+    onNameChange: setAddingFieldName,
+    onTypeChange: setAddingFieldType,
+    onRequiredChange: setAddingFieldRequired,
+    onOptionsChange: setAddingOptions,
+    onOpen: openAddRow,
+    onClose: () => setShowAddField(false),
+    onConfirm: handleAddField,
+  }
 
-  // ── Render ────────────────────────────────────────────────────────────────────
+  const editState: EditFieldState<number> = {
+    fieldId: editingFieldId,
+    name: editingFieldName,
+    fieldType: editingFieldType,
+    isRequired: editingFieldRequired,
+    options: editingOptions,
+  }
+
+  const editHandlers: EditFieldHandlers<number> = {
+    onStart: startEditing,
+    onCancel: () => setEditingFieldId(null),
+    onConfirm: handleUpdateField,
+    onNameChange: setEditingFieldName,
+    onTypeChange: setEditingFieldType,
+    onRequiredChange: setEditingFieldRequired,
+    onOptionsChange: setEditingOptions,
+  }
+
+  const fieldEditorCtx = useMemo(() => ({ fieldTypes: defaultFieldTypes }), [])
+
+  if (loading) return <AcademyFieldsSkeleton />
 
   return (
     <div className="flex flex-col gap-4">
@@ -212,9 +239,7 @@ export function AcademyFields({
         <div className="flex items-center justify-between gap-3">
           {title}
           <div className="flex items-center gap-2 shrink-0">
-            {!disabled && (
-              <FieldAddButton onOpenAddField={openAddRow} />
-            )}
+            {!disabled && <FieldAddButton onClick={openAddRow} />}
             {disabled && (
               <Badge variant="outline" className="text-xs gap-1.5 h-9 px-3">
                 <IconEye className="h-4 w-4" />
@@ -226,64 +251,34 @@ export function AcademyFields({
       </CardHeader>
 
       <CardContent className="space-y-2 h-full flex flex-col">
-        <FieldEditorRows
-          fields={fields}
-          expandedFields={expandedFields}
-          showAddField={showAddField}
-          addingFieldName={addingFieldName}
-          addingFieldType={addingFieldType}
-          addingFieldRequired={addingFieldRequired}
-          addingOptions={addingOptions}
-          editingFieldId={editingFieldId}
-          editingFieldName={editingFieldName}
-          editingFieldType={editingFieldType}
-          editingFieldRequired={editingFieldRequired}
-          editingOptions={editingOptions}
-          disabled={disabled}
-          canShowAddFieldCta={false}
-          hideAddFieldSection
-          addConfirmDisabled={addConfirmDisabled}
-          editConfirmDisabled={editConfirmDisabled}
-          onOpenAddField={openAddRow}
-          onCloseAddField={() => setShowAddField(false)}
-          onAddField={handleAddField}
-          onAddingFieldNameChange={setAddingFieldName}
-          onAddingFieldTypeChange={setAddingFieldType}
-          onAddingFieldRequiredChange={setAddingFieldRequired}
-          onAddingOptionsChange={setAddingOptions}
-          onStartEditField={startEditing}
-          onCancelEditField={() => setEditingFieldId(null)}
-          onConfirmEditField={handleUpdateField}
-          onEditingFieldNameChange={setEditingFieldName}
-          onEditingFieldTypeChange={setEditingFieldType}
-          onEditingFieldRequiredChange={setEditingFieldRequired}
-          onEditingOptionsChange={setEditingOptions}
-          onRequestDeleteField={setDeleteTarget}
-          onToggleExpandField={toggleExpanded}
-          kebabMenu
-        />
-
-        {/* Add form — appears at BOTTOM of list when active (settings pattern) */}
-        {showAddField && (
-          <FieldAddSection
-            showAddField
-            canShowAddFieldCta={false}
-            addingFieldName={addingFieldName}
-            addingFieldType={addingFieldType}
-            addingFieldRequired={addingFieldRequired}
-            addingOptions={addingOptions}
+        <FieldEditorContext.Provider value={fieldEditorCtx}>
+          <FieldEditor
+            fields={fields}
+            expandedFields={expandedFields}
+            onToggleExpandField={toggleExpanded}
+            onRequestDeleteField={setDeleteTarget}
+            addState={addState}
+            addHandlers={addHandlers}
             addConfirmDisabled={addConfirmDisabled}
-            onAddingFieldNameChange={setAddingFieldName}
-            onAddingFieldTypeChange={setAddingFieldType}
-            onAddingFieldRequiredChange={setAddingFieldRequired}
-            onAddingOptionsChange={setAddingOptions}
-            onOpenAddField={openAddRow}
-            onCloseAddField={() => setShowAddField(false)}
-            onAddField={handleAddField}
+            editState={editState}
+            editHandlers={editHandlers}
+            editConfirmDisabled={editConfirmDisabled}
+            disabled={disabled}
+            canShowAddFieldCta={false}
+            hideAddSection
+            kebabMenu
           />
-        )}
 
-        {/* Delete confirmation */}
+          {showAddField && (
+            <FieldAddSection
+              state={addState}
+              handlers={addHandlers}
+              confirmDisabled={addConfirmDisabled}
+              canShowCta={false}
+            />
+          )}
+        </FieldEditorContext.Provider>
+
         <AlertDialog
           open={!!deleteTarget}
           onOpenChange={(open: boolean) => !open && setDeleteTarget(null)}

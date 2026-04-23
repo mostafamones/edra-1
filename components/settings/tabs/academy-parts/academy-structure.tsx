@@ -4,13 +4,12 @@ import { useCallback, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { IconCheck, IconEye, IconHierarchy2 } from "@tabler/icons-react"
+import { IconEye } from "@tabler/icons-react"
 import {
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-  Card,
 } from "@/components/ui/card"
 import { toast } from "sonner"
 import type { Level, Group } from "@/lib"
@@ -27,13 +26,22 @@ import {
 } from "@/components/ui/alert-dialog"
 import {
   DEFAULT_LEVEL_COLOR_ID,
-  StructureEditorRows,
+  StructureEditor,
   StructureAddLevelButton,
   StructureAddLevelSection,
   type StructureLevel,
-} from "@/components/shared/academy/level-rows"
+  type AddLevelState,
+  type AddLevelHandlers,
+  type EditLevelState,
+  type EditLevelHandlers,
+  type AddGroupState,
+  type AddGroupHandlers,
+  type EditGroupState,
+  type EditGroupHandlers,
+  type DeleteHandlers,
+  type StructureDisabledPredicates,
+} from "@/feat/academy"
 import { expandLevelWithCap } from "@/components/helpers/academy-utils"
-import { AcademySkeleton } from "@/components/shared/academy/skeleton"
 import { api } from "@/lib/api/client"
 import * as mutations from "@/lib/hooks/mutations"
 import { invalidateLevels } from "@/lib/hooks/use-data"
@@ -42,6 +50,15 @@ import { getErrorMessage } from "@/lib/get-error-message"
 type GroupShape = Pick<Group, "id" | "name">
 type LevelShape = Pick<Level, "id" | "name" | "color"> & { groups: GroupShape[] }
 
+function AcademyStructureSkeleton() {
+  return (
+    <div className="flex flex-col gap-3 px-6 py-4">
+      <Skeleton className="h-15 w-full" />
+      <Skeleton className="h-15 w-full" />
+      <Skeleton className="h-15 w-full" />
+    </div>
+  )
+}
 
 export function AcademyStructure({
   disabled,
@@ -73,7 +90,6 @@ export function AcademyStructure({
     proceed: () => void
   } | null>(null)
 
-  // ── Local reorder state (pending, not yet saved) ─────────────────────────
   const [pendingOrder, setPendingOrder] = useState<number[] | null>(null)
   const [savingOrder, setSavingOrder] = useState(false)
 
@@ -94,12 +110,10 @@ export function AcademyStructure({
     const resolvedLevels = levelsData ?? []
     const resolvedGroups = groupsData ?? []
 
-    // Apply pending reorder if the user has dragged but not saved yet
     let orderedLevels = resolvedLevels
     if (pendingOrder) {
       const map = new Map(resolvedLevels.map((l) => [l.id, l]))
       const reordered = pendingOrder.map((id) => map.get(id)).filter(Boolean) as typeof resolvedLevels
-      // Append any new levels that aren't in pendingOrder yet
       const inOrder = new Set(pendingOrder)
       const extras = resolvedLevels.filter((l) => !inOrder.has(l.id))
       orderedLevels = [...reordered, ...extras]
@@ -130,11 +144,16 @@ export function AcademyStructure({
     })
   }
 
+  const openAddLevel = () => {
+    setShowAddLevel(true)
+    setAddingLevelName("")
+    setAddingLevelColor(DEFAULT_LEVEL_COLOR_ID)
+  }
+
   const handleAddLevel = async () => {
     if (!academyId || !addingLevelName.trim()) return
     setSavingId("add-level")
     try {
-      // Compute next sort_order from the current local order
       const nextSortOrder = levels.length + 1
       await api.post("/api/levels", {
         academy_id: academyId,
@@ -213,7 +232,7 @@ export function AcademyStructure({
     }
   }
 
-  const handleUpdateGroup = async (groupId: number, levelId: number) => {
+  const handleUpdateGroup = async (levelId: number, groupId: number) => {
     if (!editingGroupName.trim()) return
     setSavingId(`group-${groupId}`)
     try {
@@ -228,7 +247,7 @@ export function AcademyStructure({
     }
   }
 
-  const handleDeleteGroup = async (groupId: number) => {
+  const handleDeleteGroup = async (_levelId: number, groupId: number) => {
     setSavingId(`delete-group-${groupId}`)
     try {
       await mutations.deleteGroup(groupId)
@@ -241,7 +260,6 @@ export function AcademyStructure({
     }
   }
 
-  // ── Drag-and-drop reorder ─────────────────────────────────────────────────
   const handleReorderLevels = useCallback((orderedIds: number[]) => {
     setPendingOrder(orderedIds)
   }, [])
@@ -263,7 +281,114 @@ export function AcademyStructure({
     }
   }
 
-  if (loading) return <AcademySkeleton />
+  const addLevelConfirmDisabled = !addingLevelName.trim() || savingId === "add-level"
+
+  const addLevelHandlers: AddLevelHandlers = {
+    onNameChange: setAddingLevelName,
+    onColorChange: setAddingLevelColor,
+    onOpen: openAddLevel,
+    onClose: () => setShowAddLevel(false),
+    onConfirm: handleAddLevel,
+  }
+
+  const addLevelStateBody: AddLevelState = {
+    name: addingLevelName,
+    color: addingLevelColor,
+    isOpen: showAddLevel,
+  }
+
+  const addLevelStateHeader: AddLevelState = {
+    ...addLevelStateBody,
+    isOpen: false,
+  }
+
+  const editLevelState: EditLevelState<number> = {
+    levelId: editingLevelId,
+    name: editingLevelName,
+    color: editingLevelColor,
+  }
+
+  const editLevelHandlers: EditLevelHandlers<number> = {
+    onStart: (level) => {
+      setEditingLevelId(level.id)
+      setEditingLevelName(level.name)
+      setEditingLevelColor(level.color ?? DEFAULT_LEVEL_COLOR_ID)
+      setShowAddLevel(false)
+    },
+    onCancel: () => setEditingLevelId(null),
+    onConfirm: handleUpdateLevel,
+    onNameChange: setEditingLevelName,
+    onColorChange: setEditingLevelColor,
+  }
+
+  const addGroupState: AddGroupState<number> = {
+    levelId: addingGroupToLevel,
+    name: addingGroupName,
+  }
+
+  const addGroupHandlers: AddGroupHandlers<number> = {
+    onStart: (levelId) => {
+      setAddingGroupToLevel(levelId)
+      setAddingGroupName("")
+      setExpandedLevels((prev) => expandLevelWithCap(prev, levelId))
+    },
+    onCancel: () => setAddingGroupToLevel(null),
+    onConfirm: handleAddGroup,
+    onNameChange: setAddingGroupName,
+  }
+
+  const editGroupState: EditGroupState<number> = {
+    groupId: editingGroupId,
+    name: editingGroupName,
+  }
+
+  const editGroupHandlers: EditGroupHandlers<number> = {
+    onStart: (group) => {
+      setEditingGroupId(group.id)
+      setEditingGroupName(group.name)
+    },
+    onCancel: () => setEditingGroupId(null),
+    onConfirm: handleUpdateGroup,
+    onNameChange: setEditingGroupName,
+  }
+
+  const deleteHandlers: DeleteHandlers<number> = {
+    onDeleteLevel: handleDeleteLevel,
+    onDeleteGroup: handleDeleteGroup,
+    onRequestDeleteLevel: (_levelId, proceed) => {
+      setDeleteConfirm({
+        title: "Delete level?",
+        description:
+          "This will permanently delete the level and all of its groups. This action cannot be undone.",
+        proceed,
+      })
+    },
+    onRequestDeleteGroup: (_levelId, _groupId, proceed) => {
+      setDeleteConfirm({
+        title: "Delete group?",
+        description: "This group will be permanently deleted. This action cannot be undone.",
+        proceed,
+      })
+    },
+  }
+
+  const predicates: StructureDisabledPredicates<number> = {
+    isLevelDeleteDisabled: (levelId) => savingId === `delete-level-${levelId}`,
+    isLevelUpdateDisabled: (level) =>
+      !editingLevelName.trim() ||
+      savingId === `level-${level.id}` ||
+      (level.name === editingLevelName.trim() &&
+        (level.color ?? DEFAULT_LEVEL_COLOR_ID) === editingLevelColor),
+    isGroupUpdateDisabled: (group) =>
+      !editingGroupName.trim() ||
+      group.name === editingGroupName ||
+      savingId === `group-${group.id}`,
+    isGroupDeleteDisabled: (groupId) => savingId === `delete-group-${groupId}`,
+    isGroupAddDisabled: (levelId) =>
+      !addingGroupName.trim() || savingId === `add-group-${levelId}`,
+  }
+
+  if (loading) return <AcademyStructureSkeleton />
 
   if (loadError) {
     return (
@@ -284,7 +409,6 @@ export function AcademyStructure({
         <div className="flex items-center justify-between gap-3">
           {title}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Save Order button – only shown when there's a pending reorder */}
             {!disabled && pendingOrder && (
               <Button
                 size="sm"
@@ -297,19 +421,9 @@ export function AcademyStructure({
             )}
             {!disabled && (
               <StructureAddLevelButton
-                showAddLevel={false}
-                addingLevelName={addingLevelName}
-                addingLevelColor={addingLevelColor}
-                disableAddLevelSubmit={!addingLevelName.trim() || savingId === "add-level"}
-                onAddingLevelNameChange={setAddingLevelName}
-                onAddingLevelColorChange={setAddingLevelColor}
-                onOpenAddLevel={() => {
-                  setShowAddLevel(true)
-                  setAddingLevelName("")
-                  setAddingLevelColor(DEFAULT_LEVEL_COLOR_ID)
-                }}
-                onCloseAddLevel={() => setShowAddLevel(false)}
-                onAddLevel={handleAddLevel}
+                state={addLevelStateHeader}
+                handlers={addLevelHandlers}
+                confirmDisabled={addLevelConfirmDisabled}
               />
             )}
             {disabled && (
@@ -323,114 +437,36 @@ export function AcademyStructure({
       </CardHeader>
 
       <CardContent className="space-y-2 h-full flex flex-col text-left">
-        <StructureEditorRows
+        <StructureEditor
           levels={levels as StructureLevel<number>[]}
           expandedLevels={expandedLevels}
-          showAddLevel={showAddLevel}
-          addingLevelName={addingLevelName}
-          addingLevelColor={addingLevelColor}
-          editingLevelId={editingLevelId}
-          editingLevelName={editingLevelName}
-          editingLevelColor={editingLevelColor}
-          editingGroupId={editingGroupId}
-          editingGroupName={editingGroupName}
-          addingGroupToLevel={addingGroupToLevel}
-          addingGroupName={addingGroupName}
+          onToggleLevel={toggleLevel}
+          addLevel={{
+            state: addLevelStateBody,
+            handlers: addLevelHandlers,
+            confirmDisabled: addLevelConfirmDisabled,
+          }}
+          editLevel={{ state: editLevelState, handlers: editLevelHandlers }}
+          addGroup={{ state: addGroupState, handlers: addGroupHandlers }}
+          editGroup={{ state: editGroupState, handlers: editGroupHandlers }}
+          deleteHandlers={deleteHandlers}
+          predicates={predicates}
           disabled={disabled}
           canShowAddLevelCta={false}
           hideAddLevelSection
           showColorDot={false}
           kebabMenu
-          disableAddLevelSubmit={!addingLevelName.trim() || savingId === "add-level"}
-          isLevelDeleteDisabled={(levelId) => savingId === `delete-level-${levelId}`}
-          isLevelUpdateDisabled={(level) =>
-            !editingLevelName.trim() ||
-            savingId === `level-${level.id}` ||
-            (level.name === editingLevelName.trim() &&
-              (level.color ?? DEFAULT_LEVEL_COLOR_ID) === editingLevelColor)
-          }
-          isGroupUpdateDisabled={(group) =>
-            !editingGroupName.trim() ||
-            group.name === editingGroupName ||
-            savingId === `group-${group.id}`
-          }
-          isGroupDeleteDisabled={(groupId) => savingId === `delete-group-${groupId}`}
-          isGroupAddDisabled={(levelId) =>
-            !addingGroupName.trim() || savingId === `add-group-${levelId}`
-          }
           onReorderLevels={!disabled ? handleReorderLevels : undefined}
-          onOpenAddLevel={() => {
-            setShowAddLevel(true)
-            setAddingLevelName("")
-            setAddingLevelColor(DEFAULT_LEVEL_COLOR_ID)
-          }}
-          onCloseAddLevel={() => setShowAddLevel(false)}
-          onAddLevel={handleAddLevel}
-          onAddingLevelNameChange={setAddingLevelName}
-          onAddingLevelColorChange={setAddingLevelColor}
-          onToggleLevel={toggleLevel}
-          onStartAddGroup={(levelId) => {
-            setAddingGroupToLevel(levelId)
-            setAddingGroupName("")
-            setExpandedLevels((prev) => expandLevelWithCap(prev, levelId))
-          }}
-          onCancelAddGroup={() => setAddingGroupToLevel(null)}
-          onAddingGroupNameChange={setAddingGroupName}
-          onAddGroup={handleAddGroup}
-          onStartEditLevel={(level) => {
-            setEditingLevelId(level.id)
-            setEditingLevelName(level.name)
-            setEditingLevelColor(level.color ?? DEFAULT_LEVEL_COLOR_ID)
-            setShowAddLevel(false)
-          }}
-          onCancelEditLevel={() => setEditingLevelId(null)}
-          onEditingLevelNameChange={setEditingLevelName}
-          onEditingLevelColorChange={setEditingLevelColor}
-          onUpdateLevel={handleUpdateLevel}
-          onDeleteLevel={handleDeleteLevel}
-          onRequestDeleteLevel={(_levelId, proceed) => {
-            setDeleteConfirm({
-              title: "Delete level?",
-              description:
-                "This will permanently delete the level and all of its groups. This action cannot be undone.",
-              proceed,
-            })
-          }}
-          onStartEditGroup={(group) => {
-            setEditingGroupId(group.id)
-            setEditingGroupName(group.name)
-          }}
-          onCancelEditGroup={() => setEditingGroupId(null)}
-          onEditingGroupNameChange={setEditingGroupName}
-          onUpdateGroup={(levelId, groupId) => handleUpdateGroup(groupId, levelId)}
-          onDeleteGroup={(_, groupId) => handleDeleteGroup(groupId)}
-          onRequestDeleteGroup={(_, __, proceed) => {
-            setDeleteConfirm({
-              title: "Delete group?",
-              description: "This group will be permanently deleted. This action cannot be undone.",
-              proceed,
-            })
-          }}
         />
+
         {showAddLevel && (
           <StructureAddLevelSection
-            showAddLevel
-            canShowAddLevelCta={false}
-            addingLevelName={addingLevelName}
-            addingLevelColor={addingLevelColor}
-            disableAddLevelSubmit={!addingLevelName.trim() || savingId === "add-level"}
-            onAddingLevelNameChange={setAddingLevelName}
-            onAddingLevelColorChange={setAddingLevelColor}
-            onOpenAddLevel={() => {
-              setShowAddLevel(true)
-              setAddingLevelName("")
-              setAddingLevelColor(DEFAULT_LEVEL_COLOR_ID)
-            }}
-            onCloseAddLevel={() => setShowAddLevel(false)}
-            onAddLevel={handleAddLevel}
+            state={addLevelStateBody}
+            handlers={addLevelHandlers}
+            confirmDisabled={addLevelConfirmDisabled}
+            canShowCta={false}
           />
         )}
-
       </CardContent>
 
       <AlertDialog

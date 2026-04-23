@@ -1,6 +1,6 @@
-import { AcademyWithMeta } from "@/lib/hooks/use-data"
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/api"
+import type { AcademyWithMeta } from "../types"
 
 export function useAcademy(academyId: string) {
   return useQuery({
