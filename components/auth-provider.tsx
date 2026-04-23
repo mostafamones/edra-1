@@ -52,7 +52,7 @@ const AuthContext = createContext<AuthContextType>({
 const LAST_ACADEMY_KEY = "edra_last_academy_id"
 
 const isPublicRoute = (path: string) =>
-  path === "/login" || path === "/signup" || path === "/" || path === "/create"
+  path === "/login" || path === "/signup" || path === "/" || path === "/onboarding"
 
 // ── Inner provider (manages gating and UI) ───────────────────────────────────
 

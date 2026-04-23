@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useMemo, useState } from "react"
 
 import {
   AlertDialog,
@@ -8,6 +8,7 @@ import {
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
@@ -16,6 +17,8 @@ import {
   FieldAddButton,
   FieldAddSection,
   FieldEditor,
+  FieldEditorContext,
+  defaultFieldTypes,
   makeOptionId,
   type AddFieldHandlers,
   type AddFieldState,
@@ -25,7 +28,6 @@ import {
   type SelectOption,
 } from "@/feat/academy"
 
-import { DEFAULT_FIELDS } from "../context"
 import type { AcademyDraftField, AcademyFieldType } from "../types"
 import { createDraftId } from "../utils"
 
@@ -37,9 +39,7 @@ interface FieldsStepProps {
 }
 
 export function FieldsStep({ initialData, onUpdate }: FieldsStepProps) {
-  const [fields, setFields] = useState<AcademyDraftField[]>(
-    initialData.fields.length > 0 ? initialData.fields : DEFAULT_FIELDS
-  )
+  const [fields, setFields] = useState<AcademyDraftField[]>(initialData.fields)
 
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null)
   const [editingFieldName, setEditingFieldName] = useState("")
@@ -55,12 +55,6 @@ export function FieldsStep({ initialData, onUpdate }: FieldsStepProps) {
 
   const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set())
   const [deleteTarget, setDeleteTarget] = useState<CustomField<string> | null>(null)
-
-  useEffect(() => {
-    if (initialData.fields.length === 0) {
-      onUpdate({ fields: DEFAULT_FIELDS })
-    }
-  }, [])
 
   const updateFields = (nextFields: AcademyDraftField[]) => {
     setFields(nextFields)
@@ -185,6 +179,8 @@ export function FieldsStep({ initialData, onUpdate }: FieldsStepProps) {
     onOptionsChange: setEditingOptions,
   }
 
+  const fieldEditorCtx = useMemo(() => ({ fieldTypes: defaultFieldTypes }), [])
+
   return (
     <div className="flex flex-col gap-4">
       <CardHeader className="text-left">
@@ -203,54 +199,58 @@ export function FieldsStep({ initialData, onUpdate }: FieldsStepProps) {
       </CardHeader>
 
       <CardContent className="flex h-full flex-col space-y-3">
-        <FieldEditor
-          fields={fields}
-          expandedFields={expandedFields}
-          onToggleExpandField={toggleExpanded}
-          onRequestDeleteField={setDeleteTarget}
-          addState={addState}
-          addHandlers={addHandlers}
-          addConfirmDisabled={addConfirmDisabled}
-          editState={editState}
-          editHandlers={editHandlers}
-          editConfirmDisabled={editConfirmDisabled}
-          canShowAddFieldCta={false}
-          hideAddSection
-        />
-
-        {showAddField && (
-          <FieldAddSection
-            state={addState}
-            handlers={addHandlers}
-            confirmDisabled={addConfirmDisabled}
-            canShowCta={false}
+        <FieldEditorContext.Provider value={fieldEditorCtx}>
+          <FieldEditor
+            fields={fields}
+            expandedFields={expandedFields}
+            onToggleExpandField={toggleExpanded}
+            onRequestDeleteField={setDeleteTarget}
+            addState={addState}
+            addHandlers={addHandlers}
+            addConfirmDisabled={addConfirmDisabled}
+            editState={editState}
+            editHandlers={editHandlers}
+            editConfirmDisabled={editConfirmDisabled}
+            canShowAddFieldCta={false}
+            hideAddSection
           />
+
+          {showAddField && (
+            <FieldAddSection
+              state={addState}
+              handlers={addHandlers}
+              confirmDisabled={addConfirmDisabled}
+              canShowCta={false}
+            />
+          )}
+        </FieldEditorContext.Provider>
+
+        {deleteTarget && (
+          <AlertDialog
+            open
+            onOpenChange={(open: boolean) => {
+              if (!open) setDeleteTarget(null)
+            }}
+          >
+            <AlertDialogContent size="sm">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Field</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete{" "}
+                  <span className="font-medium text-foreground">{deleteTarget.name}</span>? This action
+                  cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteField} variant="destructive">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
-
-        <AlertDialog
-          open={!!deleteTarget}
-          onOpenChange={(open: boolean) => {
-            if (!open) setDeleteTarget(null)
-          }}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Field</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete{" "}
-                <span className="font-medium text-foreground">{deleteTarget?.name}</span>? This action
-                cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-
-            <div className="flex justify-end gap-2">
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteField} variant="destructive">
-                Delete
-              </AlertDialogAction>
-            </div>
-          </AlertDialogContent>
-        </AlertDialog>
       </CardContent>
     </div>
   )

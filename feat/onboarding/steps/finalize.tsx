@@ -1,19 +1,16 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
-import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { ACADEMY_ICONS } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 import {
   IconAsterisk,
   IconBlocks,
   IconCalendar,
-  IconChevronRight,
   IconCursorText,
   IconForms,
   IconHash,
-  IconLayoutGrid,
   IconList,
   IconPhone,
   IconSchool,
@@ -23,6 +20,7 @@ import {
 
 import type { AcademyCreateDraft, AcademyFieldType } from "../types"
 import { IconHolder } from "../components/icon-holder"
+import { ColorSelector } from "@/components/ui/color-selector"
 
 const COLOR_SWATCH: Record<string, string> = {
   rose: "bg-rose-500",
@@ -91,8 +89,8 @@ export function FinalizeStep({ academyData }: { academyData: AcademyCreateDraft 
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4">
-        <div className="rounded-lg bg-muted/50 p-4">
-          <div className="flex items-center gap-2">
+        <Card>
+          <CardContent className="flex items-center gap-2">
             <IconHolder selectedIconId={academyData.icon ?? ""} size="2xl" />
             <div className="flex min-w-0 flex-1 flex-col">
               <p className="truncate text-base font-semibold leading-tight">
@@ -111,8 +109,8 @@ export function FinalizeStep({ academyData }: { academyData: AcademyCreateDraft 
                 {academyData.subject}
               </Badge>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         <Separator />
 
@@ -129,32 +127,31 @@ export function FinalizeStep({ academyData }: { academyData: AcademyCreateDraft 
             ) : (
               <div className="flex flex-col gap-2">
                 {academyData.levels.map((level) => (
-                  <div
+                  <Card
                     key={level.id}
-                    className="overflow-hidden rounded-lg border border-input bg-muted/10"
+                    className="overflow-hidden rounded-lg p-0 gap-0"
                   >
-                    <div className="flex h-11 items-center gap-3 px-4">
-                      <span className={cn("size-2 shrink-0 rounded-full", swatchClass(level.color))} />
+                    <div className="flex h-11 items-center gap-2.5 px-4">
+                      <ColorSelector value={level.color ?? ""} onChange={() => {}} locked compact />
                       <p className="flex-1 truncate text-sm font-medium">{level.name}</p>
                       {level.groups.length > 0 && (
-                        <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                          <IconUsers className="size-3.5" />
+                        <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                          <IconUsers className="size-2.5" />
                           {level.groups.length} group{level.groups.length !== 1 ? "s" : ""}
-                        </div>
+                        </Badge>
                       )}
                     </div>
 
                     {level.groups.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 border-t border-input/50 bg-muted/5 px-3 py-2">
+                      <div className="flex flex-wrap gap-1.5 border-t border-input/50 bg-background/20 px-3 py-3">
                         {level.groups.map((group) => (
-                          <Badge key={group.id} variant="secondary" className="gap-1 text-xs">
-                            <IconUsers className="size-2.5" />
+                          <Badge key={group.id} variant="secondary" className="gap-1 text-[11px]">
                             {group.name}
                           </Badge>
                         ))}
                       </div>
                     )}
-                  </div>
+                  </Card>
                 ))}
               </div>
             )}
@@ -176,9 +173,9 @@ export function FinalizeStep({ academyData }: { academyData: AcademyCreateDraft 
                   const isSelect = field.field_type === "select"
 
                   return (
-                    <div
+                    <Card
                       key={field.id}
-                      className="overflow-hidden rounded-lg border border-input bg-muted/10"
+                      className="overflow-hidden rounded-lg p-0 gap-0"
                     >
                       <div className="flex h-11 items-center gap-2 px-3">
                         <div className="flex size-6 shrink-0 items-center justify-center rounded-md">
@@ -188,38 +185,31 @@ export function FinalizeStep({ academyData }: { academyData: AcademyCreateDraft 
                         <p className="flex-1 truncate text-sm font-medium">{field.name}</p>
 
                         <div className="flex shrink-0 items-center gap-1.5">
-                          {isSelect && (field.options?.length ?? 0) > 0 && (
-                            <span className="text-[10px] text-muted-foreground">
-                              {field.options!.length} options
-                            </span>
-                          )}
-
                           {field.is_required && (
                             <Badge variant="destructive" className="gap-0.5 px-1 py-0 text-[10px]">
                               <IconAsterisk className="size-2.5" />
                             </Badge>
                           )}
 
-                          <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+                          <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
                             {FIELD_TYPE_LABEL[field.field_type]}
                           </Badge>
                         </div>
                       </div>
 
                       {isSelect && (field.options?.length ?? 0) > 0 && (
-                        <div className="flex flex-wrap gap-1.5 border-t border-input/50 bg-muted/5 px-3 py-2">
-                          {field.options!.map((option, index) => (
-                            <Badge
-                              key={`${field.id}-${index}`}
-                              variant="secondary"
-                              className="text-[11px] font-normal"
-                            >
-                              {option}
-                            </Badge>
-                          ))}
+                        <div className="flex items-center gap-1.5 border-t border-input/50 bg-background/20 px-4 py-3">
+                          <div className="text-[11px] text-muted-foreground">Options:</div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {field.options!.map((option, index) => (
+                              <Badge key={`${field.id}-${index}`} variant="secondary" className="text-[11px] font-normal">
+                                {option}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
                       )}
-                    </div>
+                    </Card>
                   )
                 })}
               </div>

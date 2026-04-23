@@ -378,34 +378,34 @@ export function StructureStep({
           />
         )}
 
-        <AlertDialog
-          open={!!deleteConfirm}
-          onOpenChange={(open) => {
-            if (!open) setDeleteConfirm(null)
-          }}
-        >
-          <AlertDialogContent size="sm">
-            <AlertDialogHeader>
-              <AlertDialogTitle>{deleteConfirm?.title ?? "Confirm delete"}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {deleteConfirm?.description ?? "Are you sure you want to continue?"}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
+        {deleteConfirm && (
+          <AlertDialog
+            open
+            onOpenChange={(open) => {
+              if (!open) setDeleteConfirm(null)
+            }}
+          >
+            <AlertDialogContent size="sm">
+              <AlertDialogHeader>
+                <AlertDialogTitle>{deleteConfirm.title}</AlertDialogTitle>
+                <AlertDialogDescription>{deleteConfirm.description}</AlertDialogDescription>
+              </AlertDialogHeader>
 
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setDeleteConfirm(null)}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                variant="destructive"
-                onClick={() => {
-                  deleteConfirm?.proceed()
-                  setDeleteConfirm(null)
-                }}
-              >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  onClick={() => {
+                    deleteConfirm.proceed()
+                    setDeleteConfirm(null)
+                  }}
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </CardContent>
     </div>
   )

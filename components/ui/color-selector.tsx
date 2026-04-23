@@ -18,16 +18,20 @@ export function ColorSelector({
   onChange,
   align = "start",
   compact = false,
+  locked = false,
 }: {
   value: string
   onChange: (colorId: string) => void
   align?: "start" | "center" | "end"
   compact?: boolean
+  locked?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const swatchClass = swatchClassForColorId(value)
 
-  return (
+  return locked ? (
+    <span className={cn("rounded-full", compact ? "size-2" : "size-2.75", swatchClass)} />
+  ) : (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
