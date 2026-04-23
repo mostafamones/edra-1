@@ -90,7 +90,7 @@ export function LevelItem<TId extends StructureId>({
       onDrop={onDrop}
       onDragEnd={onDragEnd}
       className={cn(
-        "py-1 border-l-2 gap-0 p-0",
+        "py-1 border-l-2 gap-0 p-0 shadow-sm",
         borderClassForColorId(level.color),
         isDragging && "opacity-40 scale-[0.98]",
         isDragOver && !isDragging && "ring-1 ring-primary/20 ring-offset-1",

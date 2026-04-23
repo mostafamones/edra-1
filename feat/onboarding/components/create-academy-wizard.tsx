@@ -6,6 +6,8 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconSchool,
+  IconArrowRight,
+  IconArrowLeft,
 } from "@tabler/icons-react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useRouter } from "next/navigation"
@@ -250,16 +252,16 @@ export function CreateAcademyWizard() {
               <Button
                 variant="outline"
                 onClick={currentStep === 1 ? () => router.push("/") : prevStep}
-                className="gap-1"
+                className="gap-1.5 pl-2"
               >
-                <IconChevronLeft className="size-4" />
+                <IconArrowLeft className="size-4" />
                 {currentStep === 1 ? "Home" : "Back"}
               </Button>
 
               {currentStep < WIZARD_STEPS.length ? (
-                <Button onClick={nextStep} disabled={!isCurrentStepValid()} className="hover:bg-primary/80 gap-1">
+                <Button onClick={nextStep} disabled={!isCurrentStepValid()} className="hover:bg-primary/80 gap-1.5 pr-2">
                   Next step
-                  <IconChevronRight className="size-4" />
+                  <IconArrowRight className="size-4" />
                 </Button>
               ) : (
                 <div className="flex flex-col items-end gap-1.5">

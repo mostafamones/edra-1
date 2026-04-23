@@ -209,7 +209,7 @@ function FieldItem<TId extends FieldId>({
   const hasOptions = !!config.hasOptions
 
   return (
-    <Card className="p-0 gap-0">
+    <Card className="p-0 gap-0 shadow-sm">
       {isEditing ? (
         <FieldItemEdit
           editState={editState}
