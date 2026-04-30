@@ -33,6 +33,7 @@ import {
   GENERIC_ACADEMY_WORDS,
 } from "@/lib/constants"
 import { IconHolder } from "../components/icon-holder"
+import { cn } from "@/lib/utils"
 
 interface BasicsStepProps {
   initialData: {
@@ -163,20 +164,6 @@ export function BasicsStep({ initialData, onUpdate }: BasicsStepProps) {
             <FieldLabel htmlFor="subject">Subject</FieldLabel>
 
             <div className="flex w-full items-center gap-2">
-              {isOtherSubject && (
-                <div className="w-full">
-                  <Input
-                    id="subject"
-                    name="subject"
-                    placeholder="Enter custom subject..."
-                    value={data.subject}
-                    onChange={handleChange}
-                    maxLength={50}
-                    autoFocus
-                  />
-                </div>
-              )}
-
               <Select
                 value={isOtherSubject ? "Other" : data.subject || ""}
                 onValueChange={(value) => {
@@ -194,7 +181,7 @@ export function BasicsStep({ initialData, onUpdate }: BasicsStepProps) {
                   onUpdate({ ...nextData, icon: selectedIconId })
                 }}
               >
-                <SelectTrigger className={isOtherSubject ? "w-[25%] shrink-0" : "w-full"}>
+                <SelectTrigger className={cn(isOtherSubject ? "w-[20%] shrink-0" : "w-full", "!h-9")}>
                   <SelectValue placeholder="Select a subject" />
                 </SelectTrigger>
 
@@ -207,6 +194,21 @@ export function BasicsStep({ initialData, onUpdate }: BasicsStepProps) {
                   <SelectItem value="Other">Other...</SelectItem>
                 </SelectContent>
               </Select>
+
+              {isOtherSubject && (
+                <div className="w-full">
+                  <Input
+                    id="subject"
+                    name="subject"
+                    placeholder="Enter custom subject..."
+                    value={data.subject}
+                    onChange={handleChange}
+                    maxLength={50}
+                    autoFocus
+                    className="!h-9"
+                  />
+                </div>
+              )}
             </div>
           </Field>
 
@@ -215,7 +217,7 @@ export function BasicsStep({ initialData, onUpdate }: BasicsStepProps) {
           <Field>
             <FieldLabel htmlFor="slug">Academy Link</FieldLabel>
 
-            <InputGroup>
+            <InputGroup className="!h-9">
               <InputGroupInput
                 id="slug"
                 name="slug"
@@ -231,7 +233,7 @@ export function BasicsStep({ initialData, onUpdate }: BasicsStepProps) {
               </InputGroupAddon>
             </InputGroup>
 
-            {getSuggestions().length > 0 ? (
+            {getSuggestions().length > 0 && data.slug !== getSuggestions()[0] ? (
               <div className="flex items-center gap-1">
                 <p className="text-xs text-muted-foreground">Suggestions:</p>
                 <div className="flex flex-wrap gap-2">

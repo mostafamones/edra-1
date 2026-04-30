@@ -54,14 +54,23 @@ export const CREATION_STEPS = [
 ] as const
 
 export const DEFAULT_STRUCTURE_LEVELS: AcademyDraftLevel[] = [
-  { id: "level-ref-1", name: "Level 1", color: "sky", groups: [] },
+  { 
+    id: "level-ref-1",
+    name: "Secondary Two", 
+    color: "sky", 
+    groups: [
+      { id: "group-ref-a", name: "Sciences" },
+      { id: "group-ref-b", name: "Arts" },
+    ],
+  },
   {
     id: "level-ref-2",
-    name: "Level 2",
+    name: "Secondary Three",
     color: "violet",
     groups: [
-      { id: "group-ref-a", name: "Section A" },
-      { id: "group-ref-b", name: "Section B" },
+      { id: "group-ref-a", name: "Science" },
+      { id: "group-ref-b", name: "Mathematics" },
+      { id: "group-ref-c", name: "Arts" },
     ],
   },
 ]

@@ -47,12 +47,12 @@ interface StructureStepProps {
 function initialExpandedFromLevels(levels: AcademyDraftLevel[], autoExpand: boolean) {
   if (!autoExpand) return new Set<string>()
 
-  return new Set(
-    levels
-      .filter((level) => level.groups.length > 0)
-      .map((level) => level.id)
-      .slice(0, 3)
-  )
+  const secondLevel = levels[1]
+  if (!secondLevel || secondLevel.groups.length === 0) {
+    return new Set<string>()
+  }
+
+  return new Set([secondLevel.id])
 }
 
 export function StructureStep({

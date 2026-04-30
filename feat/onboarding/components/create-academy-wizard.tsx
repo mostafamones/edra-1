@@ -71,6 +71,11 @@ export function CreateAcademyWizard() {
     setPage((previous) => [Math.max(previous[0] - 1, 1), -1])
   }
 
+  const goHome = () => {
+    clearDraft()
+    router.push("/")
+  }
+
   const isCurrentStepValid = () => {
     if (currentStep === 1) return draft.name.trim().length > 0
     if (currentStep === 2) {
@@ -251,7 +256,7 @@ export function CreateAcademyWizard() {
             >
               <Button
                 variant="outline"
-                onClick={currentStep === 1 ? () => router.push("/") : prevStep}
+                onClick={currentStep === 1 ? goHome : prevStep}
                 className="gap-1.5 pl-2"
               >
                 <IconArrowLeft className="size-4" />
