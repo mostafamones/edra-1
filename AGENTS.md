@@ -15,7 +15,7 @@ This document is for humans and AI assistants working on **Edra** (academy / ins
 | [`app/(instructor)/[slug]/layout.tsx`](app/(instructor)/[slug]/layout.tsx) | **All** academy-scoped UI (dashboard + settings) wraps in `SidebarProvider`, `AppSidebar`, and `SidebarInset` so `SiteHeader` / `SidebarTrigger` always have context. |
 | [`components/ui/`](components/ui/) | shadcn/Radix primitives and generic UI only — **no domain-specific API calls**. |
 | [`components/shell/`](components/shell/) | Reusable **page chrome** (settings shell, academy settings shell). Prefer adding new cross-route layout here rather than copying `div` stacks. |
-| [`components/students|sessions|schedules|settings|create/`](components/) | Domain feature components. |
+| [`components/students|sessions|settings|create/`](components/) + [`feat/schedules/`](feat/schedules/) | Domain feature components. |
 | [`components/helpers/`](components/helpers/) | Shared config/data (e.g. sidebar nav), small types, and pure utils (`academy-utils`). Prefer **`lib/`** for pure utilities over time. |
 | [`lib/`](lib/) | Supabase client, DB helpers, hooks, shared types ([`lib/types/database.ts`](lib/types/database.ts)), [`lib/get-error-message.ts`](lib/get-error-message.ts). |
 
