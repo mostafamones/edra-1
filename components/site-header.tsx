@@ -45,7 +45,7 @@ export function SiteHeader({
 }: SiteHeaderProps) {
   return (
     <header className={cn(
-      "flex h-(--header-height) w-full items-center gap-2 border-b border-border mb-6", separator && "border-b", className
+      "flex h-(--header-height) w-full items-center gap-2 border-b border-border", separator && "border-b", className
     )}>
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2">
         {trigger && (

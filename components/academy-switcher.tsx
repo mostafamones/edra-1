@@ -73,12 +73,6 @@ export function AcademySwitcher() {
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [open, academies, activeAcademy?.id, setActiveAcademy])
 
-  const subtitle = activeAcademy?.slug
-    ? `${activeAcademy.slug}@edra.academy`
-    : academyDetails?.instructor_count != null
-      ? `${academyDetails.instructor_count} instructor${academyDetails.instructor_count !== 1 ? "s" : ""}`
-      : "edra.academy"
-
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -142,7 +136,7 @@ export function AcademySwitcher() {
 
             <DropdownMenuItem
               className="gap-2 p-1.5 cursor-pointer"
-              onClick={() => router.push("/create")}
+              onClick={() => router.push("/onboarding")}
             >
               <div className="flex size-7 shrink-0 items-center justify-center rounded-md border rounded-none bg-transparent">
                 <IconPlus className="size-3.5" />

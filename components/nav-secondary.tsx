@@ -34,7 +34,6 @@ export function NavSecondary({
     <SidebarGroup {...props}>
       <SidebarGroupContent>
         <SidebarMenu>
-
           {open && (
             <Card className="border-1 mb-5 bg-radial-[at_25%_75%] from-primary/30 to-sidebar pb-20">
               <CardHeader>
