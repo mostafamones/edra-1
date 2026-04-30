@@ -20,7 +20,8 @@ import {
 import { toast } from "sonner"
 import { IconAlertTriangle } from "@tabler/icons-react"
 import type { AttendanceWithStudent, SessionWithSchedule } from "@/lib/types"
-import * as sessionMutations from "@/lib/hooks/mutations"
+import { updateStudentRaw } from "@/feat/students/mutations"
+import { endSession } from "@/lib/hooks/mutations"
 import { getErrorMessage } from "@/lib/get-error-message"
 
 interface AnomalyResolutionDialogProps {
@@ -42,7 +43,7 @@ export function AnomalyResolutionDialog({
 
   const handleResolutionChange = async (studentId: number, note: string) => {
     try {
-      await sessionMutations.updateStudentRaw(studentId, {
+      await updateStudentRaw(studentId, {
         note,
       })
       onSuccess?.()
@@ -58,7 +59,7 @@ export function AnomalyResolutionDialog({
         .filter((a) => a.note === "Migrating")
         .map((a) => a.student_id)
 
-      await sessionMutations.endSession(session.id, {
+      await endSession(session.id, {
         academyId: session.academy_id,
         migrations,
         notes: [],
@@ -165,4 +166,3 @@ export function AnomalyResolutionDialog({
     </Dialog>
   )
 }
-

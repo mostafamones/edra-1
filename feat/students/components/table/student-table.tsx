@@ -40,7 +40,7 @@ import { PageToolbarSearch } from "@/components/shell"
 
 // ─── Types ────────────────────────────────────────────────────
 
-export interface StudentDataTableProps<TRow extends StudentWithLevelRating = StudentWithLevelRating> {
+export interface StudentTableProps<TRow extends StudentWithLevelRating = StudentWithLevelRating> {
   data: TRow[]
   columns: ColumnDef<TRow>[]
   searchable?: boolean
@@ -60,7 +60,7 @@ export interface StudentDataTableProps<TRow extends StudentWithLevelRating = Stu
 
 // ─── Component ───────────────────────────────────────────────
 
-export function StudentDataTable<TRow extends StudentWithLevelRating = StudentWithLevelRating>({
+export function StudentTable<TRow extends StudentWithLevelRating = StudentWithLevelRating>({
   data,
   columns,
   searchable = false,
@@ -76,7 +76,7 @@ export function StudentDataTable<TRow extends StudentWithLevelRating = StudentWi
   rowSelection: externalSelection,
   onRowSelectionChange,
   emptyMessage = "No students found",
-}: StudentDataTableProps<TRow>) {
+}: StudentTableProps<TRow>) {
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
   const [sorting, setSorting] = useState<SortingState>([])

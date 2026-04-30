@@ -7,20 +7,7 @@ import { IconUserPlus, IconUpload } from "@tabler/icons-react"
 import { Refresh } from "@/components/ui/refresh"
 import { withAcademyPath } from "@/components/helpers/sidebar"
 import { StudentImportDialog } from "./student-import-dialog"
-import type { Level, Group, StudentField, Schedule } from "@/lib/types"
-
-export interface StudentsPageToolbarProps {
-  academyId: string
-  levels: Level[]
-  groups: Group[]
-  fields: StudentField[]
-  schedules: Schedule[]
-  existingStudentNames: string[]
-  /** When set (e.g. from use-data hooks), used for Refresh + after import. Defaults to router.refresh(). */
-  onRefresh?: () => void | Promise<void>
-  buttonVariant?: "ghost" | "outline"
-  buttonSize?: "default" | "lg"
-}
+import type { StudentsPageToolbarProps } from "../types"
 
 export function StudentsPageToolbar({
   academyId,

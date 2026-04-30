@@ -2,7 +2,6 @@
 
 import { useCallback } from "react"
 import { SiteHeader } from "@/components/site-header"
-import { StudentsView } from "./students-view"
 import { DataSkeleton } from "@/components/ui/data-skeleton"
 import {
   useStudents,
@@ -16,8 +15,10 @@ import {
   invalidateGroups,
   invalidateFields,
 } from "@/lib/hooks/use-data"
+import type { StudentsPageContentProps } from "../types"
+import { StudentsView } from "./students-view"
 
-export function StudentsPageContent({ academyId }: { academyId: string }) {
+export function StudentsPageContent({ academyId }: StudentsPageContentProps) {
   const { data: students, loading: loadingStudents, refresh: refreshStudents } =
     useStudents(academyId)
   const { data: schedules, loading: loadingSchedules, refresh: refreshSchedules } =

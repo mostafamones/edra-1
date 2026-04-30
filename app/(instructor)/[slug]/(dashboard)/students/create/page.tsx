@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { StudentForm } from "@/components/students/student-form"
+import { StudentForm } from "@/feat/students"
 import { SiteHeader } from "@/components/site-header"
 import { getCurrentUserAcademyForSlug } from "@/lib/user"
 import { withAcademyPath } from "@/components/helpers/sidebar"

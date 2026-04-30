@@ -1,4 +1,4 @@
-import { StudentsPageContent } from "@/components/students/students-page-content"
+import { StudentsPageContent } from "@/feat/students"
 import { getServerAcademyIdForSlug } from "@/lib/user-server"
 
 /**

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, usePathname, useParams } from "next/navigation"
-import { StudentForm } from "@/components/students/student-form"
+import { StudentForm } from "@/feat/students"
 import { SiteHeader } from "@/components/site-header"
 import { getCurrentUserAcademyForSlug } from "@/lib/user"
 import { withAcademyPath } from "@/components/helpers/sidebar"
@@ -65,7 +65,7 @@ export default function EditStudentPage() {
         ]}
         back={backToList}
       />
-      <div className="p-4 lg:p-6 w-full min-w-0 max-w-7xl mx-auto">
+      <div className="">
         {loading || !academyId ? (
           <DataSkeleton variant="form" count={4} />
         ) : (
