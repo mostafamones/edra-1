@@ -24,8 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { StudentDataTable } from "@/components/students/student-data-table"
-import { buildCompactColumns } from "@/components/students/columns"
+import { StudentTable, buildCompactStudentTableColumns } from "@/feat/students"
 
 type AttendanceStudent = AttendanceWithStudent["student"] & Pick<
   StudentWithLevelRating,
@@ -125,7 +124,7 @@ export function AttendanceTable({
   }, [data])
 
   const columns = useMemo<ColumnDef<MixedStudentRow>[]>(() => {
-    const baseCols = buildCompactColumns<MixedStudentRow>(fields || [], false)
+    const baseCols = buildCompactStudentTableColumns<MixedStudentRow>(fields || [], false)
 
     const nameColIndex = baseCols.findIndex(
       (column) => "accessorKey" in column && column.accessorKey === "full_name"
@@ -276,7 +275,7 @@ export function AttendanceTable({
       </div>
 
       <div className="p-4">
-        <StudentDataTable
+        <StudentTable
           data={mappedData}
           columns={columns}
           paginated
