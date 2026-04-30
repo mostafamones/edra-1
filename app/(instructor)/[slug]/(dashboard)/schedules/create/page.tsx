@@ -5,9 +5,8 @@ import { useParams, usePathname, useRouter } from "next/navigation"
 import { SiteHeader } from "@/components/site-header"
 import { withAcademyPath } from "@/components/helpers/sidebar"
 import { getCurrentUserAcademyForSlug } from "@/lib/user"
-import { invalidateSchedules } from "@/lib/hooks/use-data"
 import { DataSkeleton } from "@/components/ui/data-skeleton"
-import { ScheduleForm } from "@/components/schedules/schedule-form"
+import { ScheduleForm } from "@/feat/schedules"
 
 export default function CreateSchedulePage() {
   const router = useRouter()
@@ -26,7 +25,6 @@ export default function CreateSchedulePage() {
   const goBackToSchedules = () => router.push(withAcademyPath(pathname, "/schedules"))
 
   const handleSuccess = () => {
-    invalidateSchedules()
     goBackToSchedules()
   }
 
@@ -54,4 +52,3 @@ export default function CreateSchedulePage() {
     </>
   )
 }
-

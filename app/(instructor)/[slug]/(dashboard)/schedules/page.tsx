@@ -1,9 +1,9 @@
-import { SchedulesView } from "@/components/schedules"
+import { SchedulesView } from "@/feat/schedules"
 import { getServerAcademyIdForSlug } from "@/lib/user-server"
 
 /**
  * Server: resolve academy from session only. All schedules data is loaded
- * client-side via `useSchedules` (see `lib/hooks/use-data.ts`).
+ * client-side via the schedules feature hook.
  */
 export default async function SchedulesPage({
   params,
@@ -23,4 +23,3 @@ export default async function SchedulesPage({
 
   return <SchedulesView academyId={academyId} />
 }
-
