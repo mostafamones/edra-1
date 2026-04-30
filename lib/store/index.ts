@@ -1,2 +1,2 @@
-export { useStudentFilters, useSessionFilters } from './filters'
-export type { StudentFiltersState, SessionFiltersState } from './filters'
+export { useSessionFilters } from './filters'
+export type { SessionFiltersState } from './filters'

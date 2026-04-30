@@ -3,55 +3,6 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import type { DateRange } from 'react-day-picker'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Student Filters Store
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface StudentFiltersState {
-  levelFilter: string
-  groupFilter: string
-  scheduleFilter: string
-  showArchived: boolean
-  customFieldFilters: Record<string, string | DateRange | undefined>
-  setLevelFilter: (level: string) => void
-  setGroupFilter: (group: string) => void
-  setScheduleFilter: (schedule: string) => void
-  setShowArchived: (show: boolean) => void
-  setCustomFieldFilter: (fieldId: string, value: string | DateRange | undefined) => void
-  resetFilters: () => void
-}
-
-export const useStudentFilters = create<StudentFiltersState>()(
-  persist(
-    (set) => ({
-      levelFilter: 'all',
-      groupFilter: 'all',
-      scheduleFilter: 'all',
-      showArchived: false,
-      customFieldFilters: {},
-      setLevelFilter: (level) => set({ levelFilter: level }),
-      setGroupFilter: (group) => set({ groupFilter: group }),
-      setScheduleFilter: (schedule) => set({ scheduleFilter: schedule }),
-      setShowArchived: (show) => set({ showArchived: show }),
-      setCustomFieldFilter: (fieldId, value) =>
-        set((state) => ({
-          customFieldFilters: { ...state.customFieldFilters, [fieldId]: value }
-        })),
-      resetFilters: () => set({
-        levelFilter: 'all',
-        groupFilter: 'all',
-        scheduleFilter: 'all',
-        showArchived: false,
-        customFieldFilters: {},
-      }),
-    }),
-    {
-      name: 'edra-student-filters',
-      storage: createJSONStorage(() => sessionStorage),
-    }
-  )
-)
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Session Filters Store
 // ─────────────────────────────────────────────────────────────────────────────
 

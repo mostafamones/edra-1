@@ -109,7 +109,7 @@ export const scheduleTimeSlotSchema = z.object({
 export const createScheduleSchema = z.object({
   academy_id: academyIdSchema,
   name: z.string().min(1, "Schedule name is required"),
-  level_id: z.number().int().nullable().optional(),
+  level_id: z.number().int(),
   group_id: z.number().int().nullable().optional(),
   schedule_type: z.enum(["recurring", "one_off"]).optional(),
   one_off_date: z.string().nullable().optional(),
@@ -125,6 +125,72 @@ export const updateScheduleSchema = createScheduleSchema
   .partial()
   .extend({
     time_slots: z.array(scheduleTimeSlotSchema).optional(),
+  });
+
+const scheduleDayOfWeekSchema = scheduleTimeSlotSchema.shape.day_of_week
+  .unwrap()
+  .min(0)
+  .max(6);
+
+const scheduleStartTimeSchema = scheduleTimeSlotSchema.shape.start_time.min(
+  1,
+  "Start time is required"
+);
+
+const scheduleEndTimeSchema = z.string();
+const scheduleInstanceDateSchema = z.string();
+
+export const recurringScheduleSlotFormSchema = z.object({
+  day_of_week: scheduleDayOfWeekSchema,
+  start_time: scheduleStartTimeSchema,
+  end_time: scheduleEndTimeSchema,
+});
+
+export const oneOffScheduleInstanceFormSchema = z.object({
+  instance_date: scheduleInstanceDateSchema,
+  start_time: scheduleStartTimeSchema,
+  end_time: scheduleEndTimeSchema,
+});
+
+export const scheduleFormSchema = z
+  .object({
+    name: z.string().trim().min(1, "Schedule name is required"),
+    level_id: z.string().min(1, "Level is required"),
+    group_id: z.string(),
+    schedule_type: z.enum(["recurring", "one_off"]),
+    auto_assign: z.boolean(),
+    show_on_form: z.boolean(),
+    recurring_slots: z.array(recurringScheduleSlotFormSchema),
+    one_off_instances: z.array(oneOffScheduleInstanceFormSchema),
+  })
+  .superRefine((values, ctx) => {
+    if (values.schedule_type === "recurring" && values.recurring_slots.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["recurring_slots"],
+        message: "Add at least one time slot",
+      });
+    }
+
+    if (values.schedule_type === "one_off" && values.one_off_instances.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["one_off_instances"],
+        message: "Add at least one instance",
+      });
+    }
+
+    if (values.schedule_type === "one_off") {
+      values.one_off_instances.forEach((instance, index) => {
+        if (!instance.instance_date) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["one_off_instances", index, "instance_date"],
+            message: "Date is required",
+          });
+        }
+      });
+    }
   });
 
 // ─── Fields ───────────────────────────────────────────────────────
@@ -260,6 +326,7 @@ export type CreateSessionInput = z.infer<typeof createSessionSchema>;
 export type UpdateSessionInput = z.infer<typeof updateSessionSchema>;
 export type CreateScheduleInput = z.infer<typeof createScheduleSchema>;
 export type UpdateScheduleInput = z.infer<typeof updateScheduleSchema>;
+export type ScheduleFormValues = z.infer<typeof scheduleFormSchema>;
 export type CreateFieldInput = z.infer<typeof createFieldSchema>;
 export type UpdateFieldInput = z.infer<typeof updateFieldSchema>;
 export type CreateLevelInput = z.infer<typeof createLevelSchema>;

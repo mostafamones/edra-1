@@ -24,10 +24,7 @@ export function useAttendance(
   const result = useQuery<AttendanceWithStudent[]>(
     cacheKey,
     () =>
-      apiFetch<AttendanceWithStudent[]>(
-        `/api/attendance?sessionId=${sessionId}&_t=${Date.now()}`,
-        { cache: "no-store" }
-      ),
+      apiFetch<AttendanceWithStudent[]>(`/api/attendance?sessionId=${sessionId}&_t=${Date.now()}`),
     {
       enabled: !!sessionId,
       deps: [sessionId],

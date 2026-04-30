@@ -15,33 +15,7 @@ import {
   invalidateLevels,
   invalidateSchedules,
   invalidateSessions,
-  invalidateStudents,
 } from "./use-data";
-
-// ─── Students ─────────────────────────────────────────────────────
-
-export async function deleteStudent(id: number): Promise<void> {
-  await api.delete(`/api/students/${id}`);
-  invalidateStudents();
-}
-
-export async function updateStudentRaw(
-  id: number,
-  payload: Record<string, unknown>
-): Promise<void> {
-  await api.put(`/api/students/${id}`, payload);
-  invalidateStudents();
-}
-
-export async function bulkArchiveStudents(ids: number[]): Promise<void> {
-  await Promise.all(ids.map((id) => api.put(`/api/students/${id}`, { is_archived: true })));
-  invalidateStudents();
-}
-
-export async function bulkDeleteStudents(ids: number[]): Promise<void> {
-  await Promise.all(ids.map((id) => api.delete(`/api/students/${id}`)));
-  invalidateStudents();
-}
 
 // ─── Sessions ─────────────────────────────────────────────────────
 
@@ -75,21 +49,6 @@ export async function endSession(
 ): Promise<void> {
   await api.post(`/api/sessions/${sessionId}/end`, payload);
   invalidateSessions();
-}
-
-// ─── Schedules ────────────────────────────────────────────────────
-
-export async function deleteSchedule(id: number): Promise<void> {
-  await api.delete(`/api/schedules/${id}`);
-  invalidateSchedules();
-}
-
-export async function toggleScheduleActive(
-  id: number,
-  isActive: boolean
-): Promise<void> {
-  await api.put(`/api/schedules/${id}`, { is_active: isActive });
-  invalidateSchedules();
 }
 
 // ─── Levels / Groups ──────────────────────────────────────────────
