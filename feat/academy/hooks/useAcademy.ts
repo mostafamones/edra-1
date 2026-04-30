@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { apiFetch } from "@/lib/api"
+import { apiFetch } from "@/lib/api/client"
 import type { AcademyWithMeta } from "../types"
 
 export function useAcademy(academyId: string) {
