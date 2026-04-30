@@ -18,9 +18,21 @@ export function PageToolbar({
   return (
     <div
       className={cn(
-        "flex w-full min-w-0 flex-col gap-2 lg:flex-row lg:items-center",
+        "flex w-full min-w-0 flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center",
         className
       )}
+      {...props}
+    />
+  )
+}
+
+export function PageToolbarFooter({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      className={cn("w-full basis-full", className)}
       {...props}
     />
   )

@@ -262,14 +262,14 @@ export const DateInput = React.forwardRef<HTMLButtonElement, DateInputProps>(
               disabled={disabled}
               className={cn(
                 inputVariants({ variant }),
-                "w-full justify-start text-left font-medium px-3 gap-2 text-base",
+                "w-full justify-start text-left px-3 gap-2 text-sm font-normal",
                 !dateValue && "text-muted-foreground",
                 error && "border-destructive text-destructive",
                 className
               )}
               {...buttonProps}
             >
-              <IconCalendar className={variant === "sm" ? "size-3" : variant === "md" ? "size-3.5" : variant === "lg" ? "size-4" : "size-4.5"} />
+              <IconCalendar stroke={dateValue ? 2 : 1.5} className={variant === "sm" ? "size-3" : variant === "md" ? "size-3.5" : variant === "lg" ? "size-4" : "size-4.5"} />
               {dateValue ? format(dateValue, "MMM d, yyyy") : placeholder}
             </Button>
           </PopoverTrigger>

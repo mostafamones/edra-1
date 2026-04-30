@@ -84,8 +84,8 @@ FormItem.displayName = "FormItem"
 
 const FormLabel = React.forwardRef<
   React.ComponentRef<typeof Label>,
-  React.ComponentPropsWithoutRef<typeof Label>
->(({ className, ...props }, ref) => {
+  React.ComponentPropsWithoutRef<typeof Label> & { required?: boolean }
+>(({ className, required, ...props }, ref) => {
   const { error, formItemId } = useFormField()
 
   return (
@@ -94,7 +94,7 @@ const FormLabel = React.forwardRef<
       className={cn(error && "text-destructive", className)}
       htmlFor={formItemId}
       {...props}
-    />
+    ><p>{props.children} {required && <span className="text-destructive">*</span>}</p></Label>
   )
 })
 FormLabel.displayName = "FormLabel"
@@ -162,6 +162,16 @@ const FormMessage = React.forwardRef<
 })
 FormMessage.displayName = "FormMessage"
 
+const FormSectionTitle = React.forwardRef<
+  HTMLHeadingElement,
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, ...props }, ref) => {
+  return (
+    <h3 ref={ref} className={cn("text-sm font-medium uppercase text-muted-foreground", className)} {...props} />
+  )
+})
+FormSectionTitle.displayName = "FormSectionTitle"
+
 export {
   useFormField,
   Form,
@@ -171,4 +181,5 @@ export {
   FormDescription,
   FormMessage,
   FormField,
-}
+  FormSectionTitle,
+} 

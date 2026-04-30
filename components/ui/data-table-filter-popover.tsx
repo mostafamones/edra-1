@@ -10,6 +10,7 @@ import {
 import { IconFilter } from "@tabler/icons-react"
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Badge } from "./badge"
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -70,23 +71,32 @@ export function DataTableFilterPopover({
   triggerSize = "default",
 }: DataTableFilterPopoverProps) {
   const hasActiveFilters = activeFilterCount > 0
+  const resolvedTriggerSize =
+    iconOnly && hasActiveFilters
+      ? "default"
+      : iconOnly
+        ? triggerSize
+        : triggerSize === "icon-sm" || triggerSize === "icon"
+          ? "default"
+          : triggerSize
 
   const trigger = (
     <Button
       variant="outline"
-      size={iconOnly ? triggerSize : triggerSize === "icon-sm" || triggerSize === "icon" ? "default" : triggerSize}
+      size={resolvedTriggerSize}
       className={cn(
-        "shrink-0 gap-2",
+        "shrink-0 gap-1.5",
         !iconOnly && "h-10",
+        iconOnly && hasActiveFilters && "px-2",
         className
       )}
     >
       <IconFilter className="size-4" />
       {!iconOnly && label}
       {hasActiveFilters && (
-        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white/10 px-1.5 text-xs font-medium text-foreground">
+        <Badge className="flex size-4 items-center justify-center rounded-full bg-white/10 px-1.5 text-[11px] font-medium text-foreground">
           {activeFilterCount}
-        </span>
+        </Badge>
       )}
       {iconOnly && <span className="sr-only">{tooltip ?? label}</span>}
     </Button>
