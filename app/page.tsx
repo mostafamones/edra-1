@@ -14,7 +14,7 @@ export default function Page() {
         <h1 className="font-semibold text-lg">Signed Up Successfully</h1>
         <p className="text-muted-foreground">You can now create your first academy.</p>
         <div className="flex gap-2 mt-4">
-          <Button onClick={() => router.push("/create")}>Create Academy</Button>
+          <Button onClick={() => router.push("/onboarding")}>Create Academy</Button>
           <Button onClick={() => router.push(`/${activeAcademy?.slug}/dashboard`)}>Go to Dashboard</Button>
         </div>
       </div>
